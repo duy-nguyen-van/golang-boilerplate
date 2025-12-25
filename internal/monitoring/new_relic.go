@@ -2,10 +2,11 @@ package monitoring
 
 import (
 	"golang-boilerplate/internal/config"
+	"golang-boilerplate/internal/logger"
 
-	"github.com/newrelic/go-agent/v3/integrations/nrlogrus"
 	"github.com/newrelic/go-agent/v3/newrelic"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func InitNewRelic(config config.Config) *newrelic.Application {
@@ -14,7 +15,7 @@ func InitNewRelic(config config.Config) *newrelic.Application {
 
 	// Skip NewRelic initialization if license is not provided
 	if license == "" {
-		log.Warn("NewRelic license not provided, skipping NewRelic initialization")
+		logger.Sugar.Warn("NewRelic license not provided, skipping NewRelic initialization")
 		return nil
 	}
 
@@ -28,19 +29,22 @@ func InitNewRelic(config config.Config) *newrelic.Application {
 		newrelic.ConfigLicense(license),
 		newrelic.ConfigAppLogForwardingEnabled(true),
 		newrelic.ConfigDistributedTracerEnabled(true),
-		func(config *newrelic.Config) {
-			log.SetLevel(log.InfoLevel)
-			config.Logger = nrlogrus.StandardLogger()
-		},
 	)
 
 	if err != nil {
-		log.Warnf("Failed to initialize NewRelic: %v", err)
+		logger.Sugar.Warnf("Failed to initialize NewRelic: %v", err)
 		return nil
 	}
 
-	log.AddHook(NewNRHook(app))
-	log.Info("NewRelic initialized successfully")
+	// Add NewRelic core to zap logger
+	if logger.Log != nil {
+		logger.Log = logger.Log.WithOptions(zap.WrapCore(func(core zapcore.Core) zapcore.Core {
+			return zapcore.NewTee(core, NewNRCore(app))
+		}))
+		logger.Sugar = logger.Log.Sugar()
+	}
+
+	logger.Sugar.Info("NewRelic initialized successfully")
 
 	return app
 }

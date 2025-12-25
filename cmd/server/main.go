@@ -29,8 +29,9 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/ory/viper"
-	log "github.com/sirupsen/logrus"
 	"go.uber.org/fx"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func NewHTTPServer(lc fx.Lifecycle,
@@ -55,18 +56,18 @@ func NewHTTPServer(lc fx.Lifecycle,
 			if err != nil {
 				return err
 			}
-			log.Println("Starting HTTP server at", srv.Addr)
+			logger.Sugar.Infof("Starting HTTP server at %s", srv.Addr)
 			go func() {
 				err := srv.Serve(ln)
 				if err != nil {
-					log.Panic(err)
+					logger.Sugar.Panicf("HTTP server error: %v", err)
 				}
 			}()
 
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
-			log.Println("Shutting down HTTP server...")
+			logger.Sugar.Info("Shutting down HTTP server...")
 
 			// Graceful shutdown with timeout
 			shutdownCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -74,17 +75,17 @@ func NewHTTPServer(lc fx.Lifecycle,
 
 			// Shutdown HTTP server
 			if err := srv.Shutdown(shutdownCtx); err != nil {
-				log.Errorf("HTTP server shutdown error: %v", err)
+				logger.Sugar.Errorf("HTTP server shutdown error: %v", err)
 				return err
 			}
 
 			// Close database connections
 			if err := db.Close(); err != nil {
-				log.Errorf("Database shutdown error: %v", err)
+				logger.Sugar.Errorf("Database shutdown error: %v", err)
 				return err
 			}
 
-			log.Println("Server shutdown completed")
+			logger.Sugar.Info("Server shutdown completed")
 			return nil
 		},
 	})
@@ -108,19 +109,26 @@ func main() {
 	docs.SwaggerInfo.BasePath = "/api/v1"
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("Failed to load configuration: %v", err)
+		// Use standard log for fatal errors before logger is initialized
+		fmt.Fprintf(os.Stderr, "Failed to load configuration: %v\n", err)
+		os.Exit(1)
 	}
 	// Initialize global logger before any middleware uses it
-	logger.Init(cfg.LogLevel)
+	logger.Init(cfg.LogLevel, cfg.AppEnv)
 	nrApp := monitoring.InitNewRelic(*cfg)
 	monitoring.InitSentry(*cfg)
 
-	// Add Sentry hook to logrus with background context
-	log.AddHook(monitoring.NewSentryHook(context.Background(), []log.Level{
-		log.ErrorLevel,
-		log.FatalLevel,
-		log.PanicLevel,
-	}))
+	// Add Sentry core to zap logger
+	if logger.Log != nil {
+		logger.Log = logger.Log.WithOptions(zap.WrapCore(func(core zapcore.Core) zapcore.Core {
+			return zapcore.NewTee(core, monitoring.NewSentryCore(context.Background(), []zapcore.Level{
+				zapcore.ErrorLevel,
+				zapcore.FatalLevel,
+				zapcore.PanicLevel,
+			}))
+		}))
+		logger.Sugar = logger.Log.Sugar()
+	}
 
 	// Ensure all events are flushed before the program exits
 	defer monitoring.FlushSentry()
@@ -132,7 +140,7 @@ func main() {
 	}
 	loc, err := time.LoadLocation(timezone)
 	if err != nil {
-		log.Warnf("Invalid timezone %s, falling back to UTC", timezone)
+		logger.Sugar.Warnf("Invalid timezone %s, falling back to UTC", timezone)
 		loc = time.UTC
 	}
 	time.Local = loc
@@ -174,7 +182,8 @@ func InitConfig(path string) {
 	err := viper.ReadInConfig()
 	var pathErr *os.PathError
 	if errors.As(err, &pathErr) {
-		log.Warnf("no config file '%s' not found. Using default values", path)
+		// Use standard log for warnings before logger is initialized
+		fmt.Fprintf(os.Stderr, "no config file '%s' not found. Using default values\n", path)
 	} else if err != nil { // Handle other errors that occurred while reading the config file
 		panic(fmt.Errorf("fatal error while reading the config file: %w", err))
 	}
@@ -184,7 +193,7 @@ func ProvideGormPostgres(cfg *config.Config) *db.PostgresDB {
 	appDB := &db.PostgresDB{}
 	err := appDB.NewPostgresDB(cfg)
 	if err != nil {
-		log.Fatalf("Connecting to Database: %v", err)
+		logger.Sugar.Fatalf("Connecting to Database: %v", err)
 	}
 	return appDB
 }

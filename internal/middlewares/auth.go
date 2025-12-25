@@ -9,10 +9,12 @@ import (
 	"golang-boilerplate/internal/integration/auth"
 	"golang-boilerplate/internal/monitoring"
 
+	"golang-boilerplate/internal/logger"
+
 	"github.com/getsentry/sentry-go"
 	"github.com/labstack/echo/v4"
 	"github.com/ory/viper"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 // AuthMiddleware creates middleware for JWT authentication
@@ -74,13 +76,13 @@ func AuthMiddleware(authService auth.AuthService) echo.MiddlewareFunc {
 						hub.CaptureException(err)
 					})
 				}
-				log.WithFields(log.Fields{
-					"path":       c.Request().URL.Path,
-					"method":     c.Request().Method,
-					"ip":         c.RealIP(),
-					"user_agent": c.Request().UserAgent(),
-					"error":      err.Error(),
-				}).Error("Invalid token claims")
+				logger.Log.Error("Invalid token claims",
+					zap.String("path", c.Request().URL.Path),
+					zap.String("method", c.Request().Method),
+					zap.String("ip", c.RealIP()),
+					zap.String("user_agent", c.Request().UserAgent()),
+					zap.Error(err),
+				)
 
 				return c.JSON(http.StatusUnauthorized, map[string]string{
 					"error": "Invalid token claims",

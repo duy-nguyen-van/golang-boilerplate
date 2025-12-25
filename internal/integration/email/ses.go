@@ -6,13 +6,15 @@ import (
 	"golang-boilerplate/internal/errors"
 	"golang-boilerplate/internal/monitoring"
 
+	"golang-boilerplate/internal/logger"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/ses"
 	"github.com/aws/aws-sdk-go-v2/service/ses/types"
+
 	"github.com/getsentry/sentry-go"
-	log "github.com/sirupsen/logrus"
 )
 
 type SESSender struct {
@@ -39,12 +41,12 @@ func NewSESSender(config config.Config) (*SESSender, error) {
 			})
 		}
 
-		log.WithFields(log.Fields{
-			"service":   "ses",
-			"operation": "send_email",
-			"config":    config,
-			"error":     err.Error(),
-		}).Error("Failed to load AWS config")
+		logger.Sugar.Errorw("Failed to load AWS config",
+			"service", "ses",
+			"operation", "send_email",
+			"config", config,
+			"error", err.Error(),
+		)
 
 		return nil, errors.ExternalServiceError("Failed to load AWS config", err).
 			WithOperation("load_aws_config").
@@ -135,12 +137,12 @@ func (s *SESSender) SendEmail(ctx context.Context, request EmailRequest) (*Email
 			})
 		}
 
-		log.WithContext(ctx).WithFields(log.Fields{
-			"service":   "ses",
-			"operation": "send_email",
-			"request":   request,
-			"error":     err.Error(),
-		}).Error("Failed to send email via SES")
+		logger.Sugar.Errorw("Failed to send email via SES",
+			"service", "ses",
+			"operation", "send_email",
+			"request", request,
+			"error", err.Error(),
+		)
 
 		return &EmailResponse{
 				Provider: "ses",

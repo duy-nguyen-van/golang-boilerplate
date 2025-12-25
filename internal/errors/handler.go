@@ -8,9 +8,11 @@ import (
 	"golang-boilerplate/internal/constants"
 	"golang-boilerplate/internal/dtos"
 
+	"golang-boilerplate/internal/logger"
+
 	"github.com/getsentry/sentry-go"
 	"github.com/labstack/echo/v4"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -182,42 +184,44 @@ func containsSubstring(s, substr string) bool {
 
 // logError logs the error with appropriate level and context
 func (h *ErrorHandler) logError(c echo.Context, appErr *AppError) {
-	fields := log.Fields{
-		"error_code":  appErr.Code,
-		"error_type":  appErr.Type,
-		"http_status": appErr.HTTPStatus,
-		"operation":   appErr.Operation,
-		"resource":    appErr.Resource,
-		"timestamp":   appErr.Timestamp,
+	fields := []zap.Field{
+		zap.String("error_code", appErr.Code),
+		zap.String("error_type", string(appErr.Type)),
+		zap.Int("http_status", appErr.HTTPStatus),
+		zap.String("operation", appErr.Operation),
+		zap.String("resource", appErr.Resource),
+		zap.Time("timestamp", appErr.Timestamp),
 	}
 
 	// Add request context
 	if c != nil {
-		fields["path"] = c.Request().URL.Path
-		fields["method"] = c.Request().Method
-		fields["query"] = c.QueryParams()
-		fields["user_agent"] = c.Request().UserAgent()
-		fields["ip"] = c.RealIP()
+		fields = append(fields,
+			zap.String("path", c.Request().URL.Path),
+			zap.String("method", c.Request().Method),
+			zap.Any("query", c.QueryParams()),
+			zap.String("user_agent", c.Request().UserAgent()),
+			zap.String("ip", c.RealIP()),
+		)
 	}
 
 	// Add error context
 	for k, v := range appErr.Context {
-		fields["context_"+k] = v
+		fields = append(fields, zap.Any("context_"+k, v))
 	}
 
 	// Add stack trace for internal errors
 	if appErr.Type == ErrorTypeInternal || appErr.Type == ErrorTypeDatabase {
-		fields["stack_trace"] = appErr.StackTrace
+		fields = append(fields, zap.String("stack_trace", appErr.StackTrace))
 	}
 
 	// Log with appropriate level
 	switch appErr.Type {
 	case ErrorTypeValidation, ErrorTypeNotFound, ErrorTypeUnauthorized, ErrorTypeForbidden:
-		log.WithFields(fields).Warn(appErr.Message)
+		logger.Log.Warn(appErr.Message, fields...)
 	case ErrorTypeInternal, ErrorTypeDatabase, ErrorTypeExternal, ErrorTypeCache:
-		log.WithFields(fields).Error(appErr.Message)
+		logger.Log.Error(appErr.Message, fields...)
 	default:
-		log.WithFields(fields).Error(appErr.Message)
+		logger.Log.Error(appErr.Message, fields...)
 	}
 }
 

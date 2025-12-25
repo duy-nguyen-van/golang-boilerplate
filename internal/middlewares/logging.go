@@ -13,14 +13,16 @@ import (
 	"golang-boilerplate/internal/config"
 	"golang-boilerplate/internal/integration/auth"
 
+	"golang-boilerplate/internal/logger"
+
 	"github.com/getsentry/sentry-go"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/ory/viper"
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
-// RequestLogging provides structured logs to Sentry and logrus
+// RequestLogging provides structured logs to Sentry and zap
 // and mirrors the rich request logging previously configured in the router.
 func RequestLogging(cfg *config.Config) echo.MiddlewareFunc {
 	return middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
@@ -114,29 +116,29 @@ func RequestLogging(cfg *config.Config) echo.MiddlewareFunc {
 			// Log to Sentry
 			stdLogger.Println(logMsg)
 
-			// Also log to logrus for backward compatibility
-			logrus.WithFields(logrus.Fields{
-				"uri":         values.URI,
-				"method":      values.Method,
-				"status":      values.Status,
-				"latency":     values.Latency,
-				"request_id":  values.RequestID,
-				"remote_ip":   values.RemoteIP,
-				"user_agent":  values.UserAgent,
-				"user_id":     userID,
-				"user_login":  userLoginInfo,
-				"org_id":      organizationID,
-				"payload":     body,
-				"query":       string(jsonQueryStr),
-				"path_params": string(jsonParamStr),
-				"headers":     string(jsonHeadersStr),
-				"environment": viper.GetString("APP_ENV"),
-				"service":     "fast-ai",
-				"version":     viper.GetString("APP_VERSION"),
-				"timestamp":   time.Now().UnixMilli(),
-				"hostname":    c.Request().Host,
-				"protocol":    c.Request().Proto,
-			}).Info("Request: " + values.Method + " " + values.URI)
+			// Also log to zap for structured logging
+			logger.Log.Info("Request: "+values.Method+" "+values.URI,
+				zap.String("uri", values.URI),
+				zap.String("method", values.Method),
+				zap.Int("status", values.Status),
+				zap.Duration("latency", values.Latency),
+				zap.String("request_id", values.RequestID),
+				zap.String("remote_ip", values.RemoteIP),
+				zap.String("user_agent", values.UserAgent),
+				zap.String("user_id", userID),
+				zap.String("user_login", userLoginInfo),
+				zap.String("org_id", organizationID),
+				zap.String("payload", fmt.Sprintf("%v", body)),
+				zap.String("query", string(jsonQueryStr)),
+				zap.String("path_params", string(jsonParamStr)),
+				zap.String("headers", string(jsonHeadersStr)),
+				zap.String("environment", viper.GetString("APP_ENV")),
+				zap.String("service", "fast-ai"),
+				zap.String("version", viper.GetString("APP_VERSION")),
+				zap.Int64("timestamp", time.Now().UnixMilli()),
+				zap.String("hostname", c.Request().Host),
+				zap.String("protocol", c.Request().Proto),
+			)
 
 			return nil
 		},

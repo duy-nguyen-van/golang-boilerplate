@@ -11,9 +11,9 @@ import (
 	"golang-boilerplate/internal/config"
 	"golang-boilerplate/internal/errors"
 
-	gcstorage "cloud.google.com/go/storage"
-	log "github.com/sirupsen/logrus"
+	"golang-boilerplate/internal/logger"
 
+	gcstorage "cloud.google.com/go/storage"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 )
@@ -71,7 +71,7 @@ func NewGCSAdapter(config *config.Config) (*GCSAdapter, error) {
 func (a *GCSAdapter) UploadFile(ctx context.Context, file *multipart.FileHeader, key string) (*UploadResult, error) {
 	f, err := file.Open()
 	if err != nil {
-		log.Errorf("failed to open file: %v", err)
+		logger.Sugar.Errorf("failed to open file: %v", err)
 		return nil, errors.ExternalServiceError("failed to open file", err).
 			WithOperation("open_file").
 			WithResource("storage")
@@ -83,14 +83,14 @@ func (a *GCSAdapter) UploadFile(ctx context.Context, file *multipart.FileHeader,
 
 	if _, err := io.Copy(wc, f); err != nil {
 		_ = wc.Close()
-		log.Errorf("failed to write to GCS: %v", err)
+		logger.Sugar.Errorf("failed to write to GCS: %v", err)
 		return nil, errors.ExternalServiceError("failed to write to GCS", err).
 			WithOperation("write_to_gcs").
 			WithResource("storage")
 	}
 
 	if err := wc.Close(); err != nil {
-		log.Errorf("failed to close writer: %v", err)
+		logger.Sugar.Errorf("failed to close writer: %v", err)
 		return nil, errors.ExternalServiceError("failed to close writer", err).
 			WithOperation("close_writer").
 			WithResource("storage")
@@ -115,7 +115,7 @@ func (a *GCSAdapter) GetPresignedURL(ctx context.Context, key string, duration .
 	// Read service account JSON key
 	keyJSON, err := os.ReadFile(a.config.GCSCredentialsJSONPath)
 	if err != nil {
-		log.Errorf("failed to read service account JSON: %v", err)
+		logger.Sugar.Errorf("failed to read service account JSON: %v", err)
 		return "", errors.ExternalServiceError("failed to read service account JSON", err).
 			WithOperation("read_service_account_json").
 			WithResource("storage")
@@ -124,7 +124,7 @@ func (a *GCSAdapter) GetPresignedURL(ctx context.Context, key string, duration .
 	// Parse service account JSON
 	conf, err := google.JWTConfigFromJSON(keyJSON)
 	if err != nil {
-		log.Errorf("failed to parse service account JSON: %v", err)
+		logger.Sugar.Errorf("failed to parse service account JSON: %v", err)
 		return "", errors.ExternalServiceError("failed to parse service account JSON", err).
 			WithOperation("parse_service_account_json").
 			WithResource("storage")
@@ -139,7 +139,7 @@ func (a *GCSAdapter) GetPresignedURL(ctx context.Context, key string, duration .
 
 	url, err := gcstorage.SignedURL(a.config.GCSBucket, key, opts)
 	if err != nil {
-		log.Errorf("failed to sign GCS URL: %v", err)
+		logger.Sugar.Errorf("failed to sign GCS URL: %v", err)
 		return "", errors.ExternalServiceError("failed to sign GCS URL", err).
 			WithOperation("sign_gcs_url").
 			WithResource("storage")

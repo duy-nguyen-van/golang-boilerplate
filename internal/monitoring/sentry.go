@@ -8,13 +8,114 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
-// SentryHook is a logrus hook that sends logs to Sentry using the official Sentry logger
-type SentryHook struct {
-	levels []logrus.Level
+// SentryCore is a zap core that sends logs to Sentry
+type SentryCore struct {
 	ctx    context.Context
+	levels []zapcore.Level
+}
+
+// NewSentryCore creates a new zap core for Sentry
+func NewSentryCore(ctx context.Context, levels []zapcore.Level) *SentryCore {
+	if levels == nil {
+		levels = []zapcore.Level{
+			zapcore.ErrorLevel,
+			zapcore.FatalLevel,
+			zapcore.PanicLevel,
+		}
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return &SentryCore{
+		ctx:    ctx,
+		levels: levels,
+	}
+}
+
+// Enabled returns whether the core should process this entry
+func (c *SentryCore) Enabled(level zapcore.Level) bool {
+	for _, l := range c.levels {
+		if l == level {
+			return true
+		}
+	}
+	return false
+}
+
+// With adds structured context to the core
+func (c *SentryCore) With(fields []zap.Field) zapcore.Core {
+	return c
+}
+
+// Check determines whether the supplied entry should be logged
+func (c *SentryCore) Check(entry zapcore.Entry, checked *zapcore.CheckedEntry) *zapcore.CheckedEntry {
+	if c.Enabled(entry.Level) {
+		return checked.AddCore(entry, c)
+	}
+	return checked
+}
+
+// Write sends the log entry to Sentry
+func (c *SentryCore) Write(entry zapcore.Entry, fields []zap.Field) error {
+	hub := sentry.CurrentHub().Clone()
+	hub.ConfigureScope(func(scope *sentry.Scope) {
+		// Set log level
+		scope.SetLevel(getSentryLevel(entry.Level))
+
+		// Add all fields as extra data
+		for _, field := range fields {
+			// Special handling for error field
+			if field.Key == "error" {
+				if err, ok := field.Interface.(error); ok {
+					scope.SetExtra("error_details", err.Error())
+					hub.CaptureException(err)
+					continue
+				}
+			}
+			// Add other fields
+			scope.SetExtra(field.Key, field.Interface)
+		}
+
+		// Add standard fields
+		scope.SetTag("logger", "zap")
+		scope.SetTag("log_level", entry.Level.String())
+
+		// Add timestamp
+		scope.SetExtra("timestamp", entry.Time.Format(time.RFC3339))
+
+		// Add caller information if available
+		if entry.Caller.Defined {
+			scope.SetExtra("caller_file", entry.Caller.File)
+			scope.SetExtra("caller_line", entry.Caller.Line)
+			scope.SetExtra("caller_function", entry.Caller.Function)
+		}
+	})
+
+	// Format the message with fields
+	msg := entry.Message
+	if len(fields) > 0 {
+		for _, field := range fields {
+			if field.Key != "error" {
+				msg = msg + " " + field.Key + "=" + formatValue(field.Interface)
+			}
+		}
+	}
+
+	// Log the message using Sentry logger
+	sentryLogger := sentry.NewLogger(c.ctx)
+	stdLogger := log.New(sentryLogger, "", log.LstdFlags)
+	stdLogger.Println(msg)
+
+	return nil
+}
+
+// Sync flushes any buffered logs
+func (c *SentryCore) Sync() error {
+	return nil
 }
 
 func InitSentry(config config.Config) {
@@ -62,104 +163,18 @@ func GetSentryHub(ctx context.Context) *sentry.Hub {
 	return hub
 }
 
-// NewSentryHook creates a new hook for logrus that sends logs to Sentry
-func NewSentryHook(ctx context.Context, levels []logrus.Level) *SentryHook {
-	if levels == nil {
-		levels = logrus.AllLevels
-	}
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	return &SentryHook{
-		levels: levels,
-		ctx:    ctx,
-	}
-}
-
-// Levels returns the logging levels this hook will be fired for
-func (h *SentryHook) Levels() []logrus.Level {
-	return h.levels
-}
-
-// Fire sends the log entry to Sentry using the official Sentry logger
-func (h *SentryHook) Fire(entry *logrus.Entry) error {
-	// Create a Sentry logger with the current context
-	sentryLogger := sentry.NewLogger(h.ctx)
-
-	// Create a standard logger that writes to Sentry
-	logger := log.New(sentryLogger, "", log.LstdFlags)
-
-	// Configure Sentry scope with all fields
-	hub := sentry.CurrentHub().Clone()
-	hub.ConfigureScope(func(scope *sentry.Scope) {
-		// Set log level
-		scope.SetLevel(getSentryLevel(entry.Level))
-
-		// Add all fields as extra data
-		for k, v := range entry.Data {
-			// Special handling for error field
-			if k == "error" {
-				if err, ok := v.(error); ok {
-					scope.SetExtra("error_details", err.Error())
-					continue
-				}
-			}
-			// Add other fields
-			scope.SetExtra(k, v)
-		}
-
-		// Add standard fields
-		scope.SetTag("logger", "logrus")
-		scope.SetTag("log_level", entry.Level.String())
-
-		// Add timestamp
-		scope.SetExtra("timestamp", entry.Time.Format(time.RFC3339))
-
-		// Add caller information if available
-		if entry.HasCaller() {
-			scope.SetExtra("caller_file", entry.Caller.File)
-			scope.SetExtra("caller_line", entry.Caller.Line)
-			scope.SetExtra("caller_function", entry.Caller.Function)
-		}
-	})
-
-	// If there's an error in the fields, capture it as an exception
-	if err, ok := entry.Data["error"].(error); ok {
-		hub.CaptureException(err)
-		return nil
-	}
-
-	// Format the message with fields that aren't already in the scope
-	msg := entry.Message
-	if len(entry.Data) > 0 {
-		// Add fields to the message that aren't already in the scope
-		for k, v := range entry.Data {
-			if k != "error" { // Skip error as it's handled separately
-				msg = msg + " " + k + "=" + formatValue(v)
-			}
-		}
-	}
-
-	// Log the message
-	logger.Println(msg)
-
-	return nil
-}
-
-// getSentryLevel converts logrus level to sentry level
-func getSentryLevel(level logrus.Level) sentry.Level {
+// getSentryLevel converts zap level to sentry level
+func getSentryLevel(level zapcore.Level) sentry.Level {
 	switch level {
-	case logrus.DebugLevel:
+	case zapcore.DebugLevel:
 		return sentry.LevelDebug
-	case logrus.InfoLevel:
+	case zapcore.InfoLevel:
 		return sentry.LevelInfo
-	case logrus.WarnLevel:
+	case zapcore.WarnLevel:
 		return sentry.LevelWarning
-	case logrus.ErrorLevel:
+	case zapcore.ErrorLevel:
 		return sentry.LevelError
-	case logrus.FatalLevel:
-		return sentry.LevelFatal
-	case logrus.PanicLevel:
+	case zapcore.FatalLevel, zapcore.PanicLevel:
 		return sentry.LevelFatal
 	default:
 		return sentry.LevelInfo

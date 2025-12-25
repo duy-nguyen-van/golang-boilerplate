@@ -72,7 +72,7 @@ A production-ready Go web application built on Echo, featuring clean architectur
 - **Caching**: Redis cache provider
 - **Database**: PostgreSQL with migrations (goose)
 - **Email**: AWS SES integration
-- **Logging**: Structured logging with Logrus
+- **Logging**: Structured logging with Zap
 - **Observability**: New Relic APM + Sentry error tracking
 - **Docker**: Dockerfile and Compose services for Postgres/Redis
 - **Middleware**: Auth, CORS, logging, rate limiting, error handling
@@ -148,7 +148,7 @@ golang-boilerplate/
 │  │  ├─ email.go
 │  │  └─ user.go
 │  ├─ monitoring/
-│  │  ├─ logrus.go
+│  │  ├─ newrelic_zap.go
 │  │  ├─ new_relic.go
 │  │  └─ sentry.go
 │  ├─ repositories/
@@ -940,7 +940,7 @@ make migration-create name=add_users
 ## Production Deployment
 
 1. Build and push Docker image or deploy the binary built from `cmd/server`.
-2. Set `ENVIRONMENT=production` and all required env vars.
+2. Set `APP_ENV=production` and all required env vars.
 3. Expose the port configured by `APP_HTTP_SERVER` (e.g. `:3000`).
 
 ## Contributing

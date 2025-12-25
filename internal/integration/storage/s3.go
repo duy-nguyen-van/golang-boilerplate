@@ -9,12 +9,14 @@ import (
 	"golang-boilerplate/internal/config"
 	"golang-boilerplate/internal/errors"
 
+	"golang-boilerplate/internal/logger"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	log "github.com/sirupsen/logrus"
 )
 
 type S3Adapter struct {
@@ -54,7 +56,7 @@ func NewS3Adapter(config *config.Config) (*S3Adapter, error) {
 func (a *S3Adapter) UploadFile(ctx context.Context, file *multipart.FileHeader, key string) (*UploadResult, error) {
 	f, err := file.Open()
 	if err != nil {
-		log.Errorf("failed to open file: %v", err)
+		logger.Sugar.Errorf("failed to open file: %v", err)
 		return nil, errors.ExternalServiceError("failed to open file", err).
 			WithOperation("open_file").
 			WithResource("storage")
@@ -71,7 +73,7 @@ func (a *S3Adapter) UploadFile(ctx context.Context, file *multipart.FileHeader, 
 		ContentType: aws.String(file.Header.Get("Content-Type")),
 	})
 	if err != nil {
-		log.Errorf("failed to upload to S3: %v", err)
+		logger.Sugar.Errorf("failed to upload to S3: %v", err)
 		return nil, errors.ExternalServiceError("failed to upload to S3", err).
 			WithOperation("upload_to_s3").
 			WithResource("storage")
@@ -111,7 +113,7 @@ func (a *S3Adapter) GetPresignedURL(ctx context.Context, key string, duration ..
 		opts.Expires = expiry
 	})
 	if err != nil {
-		log.Errorf("failed to generate presigned URL: %v", err)
+		logger.Sugar.Errorf("failed to generate presigned URL: %v", err)
 		return "", errors.ExternalServiceError("failed to generate presigned URL", err).
 			WithOperation("generate_presigned_url").
 			WithResource("storage")

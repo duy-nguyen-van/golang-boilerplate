@@ -8,12 +8,13 @@ import (
 
 	"golang-boilerplate/internal/config"
 	"golang-boilerplate/internal/errors"
+	"golang-boilerplate/internal/logger"
 
 	"github.com/getsentry/sentry-go"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	gormlogger "gorm.io/gorm/logger"
 )
 
 // DatabaseManager handles database connections with advanced features
@@ -77,10 +78,10 @@ func (dm *DatabaseManager) connectWithRetry() error {
 	var lastErr error
 
 	for attempt := 1; attempt <= dm.config.DatabaseRetryAttempts; attempt++ {
-		log.WithFields(log.Fields{
-			"attempt":      attempt,
-			"max_attempts": dm.config.DatabaseRetryAttempts,
-		}).Info("Attempting to connect to database")
+		logger.Log.Info("Attempting to connect to database",
+			zap.Int("attempt", attempt),
+			zap.Int("max_attempts", dm.config.DatabaseRetryAttempts),
+		)
 
 		if err := dm.connect(); err != nil {
 			lastErr = err
@@ -95,10 +96,10 @@ func (dm *DatabaseManager) connectWithRetry() error {
 				})
 			}
 
-			log.WithFields(log.Fields{
-				"attempt": attempt,
-				"error":   err.Error(),
-			}).Error("Database connection attempt failed")
+			logger.Log.Error("Database connection attempt failed",
+				zap.Int("attempt", attempt),
+				zap.Error(err),
+			)
 
 			if attempt < dm.config.DatabaseRetryAttempts {
 				time.Sleep(dm.config.DatabaseRetryDelay)
@@ -106,7 +107,7 @@ func (dm *DatabaseManager) connectWithRetry() error {
 		} else {
 			dm.healthStatus.IsHealthy = true
 			dm.healthStatus.RetryCount = 0
-			log.Info("Database connection established successfully")
+			logger.Log.Info("Database connection established successfully")
 			return nil
 		}
 	}
@@ -119,13 +120,13 @@ func (dm *DatabaseManager) connectWithRetry() error {
 
 // connect establishes the actual database connection
 func (dm *DatabaseManager) connect() error {
-	logLevel := logger.Error
+	logLevel := gormlogger.Error
 	if dm.config.IsDebugMode() {
-		logLevel = logger.Info
+		logLevel = gormlogger.Info
 	}
 
 	db, err := gorm.Open(postgres.Open(dm.config.ConnectionString()), &gorm.Config{
-		Logger: logger.Default.LogMode(logLevel),
+		Logger: gormlogger.Default.LogMode(logLevel),
 		NowFunc: func() time.Time {
 			return time.Now().UTC()
 		},
@@ -251,7 +252,7 @@ func (dm *DatabaseManager) updateMetrics() {
 
 	sqlDB, err := dm.db.DB()
 	if err != nil {
-		log.WithError(err).Error("Failed to get SQL DB for metrics")
+		logger.Log.Error("Failed to get SQL DB for metrics", zap.Error(err))
 		return
 	}
 
@@ -286,17 +287,14 @@ func (dm *DatabaseManager) Close() error {
 				WithResource("database")
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
 		if err := sqlDB.Close(); err != nil {
-			log.WithContext(ctx).Error("Failed to close database connection")
+			logger.Log.Error("Failed to close database connection", zap.Error(err))
 			return errors.DatabaseError("Failed to close database connection", err).
 				WithOperation("close_database").
 				WithResource("database")
 		}
 
-		log.Info("Database connection closed gracefully")
+		logger.Log.Info("Database connection closed gracefully")
 	}
 
 	return nil

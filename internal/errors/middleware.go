@@ -7,9 +7,11 @@ import (
 
 	"golang-boilerplate/internal/config"
 
+	"golang-boilerplate/internal/logger"
+
 	"github.com/getsentry/sentry-go"
 	"github.com/labstack/echo/v4"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 // RecoveryMiddleware provides panic recovery with proper error handling
@@ -38,19 +40,19 @@ func RecoveryMiddleware(cfg *config.Config) echo.MiddlewareFunc {
 					}
 
 					// Log the panic
-					log.WithFields(log.Fields{
-						"error_code":  panicErr.Code,
-						"error_type":  panicErr.Type,
-						"http_status": panicErr.HTTPStatus,
-						"operation":   panicErr.Operation,
-						"path":        c.Request().URL.Path,
-						"method":      c.Request().Method,
-						"query":       c.QueryParams(),
-						"user_agent":  c.Request().UserAgent(),
-						"ip":          c.RealIP(),
-						"stack_trace": panicErr.StackTrace,
-						"panic_value": r,
-					}).Error("Application panic recovered")
+					logger.Log.Error("Application panic recovered",
+						zap.String("error_code", panicErr.Code),
+						zap.String("error_type", string(panicErr.Type)),
+						zap.Int("http_status", panicErr.HTTPStatus),
+						zap.String("operation", panicErr.Operation),
+						zap.String("path", c.Request().URL.Path),
+						zap.String("method", c.Request().Method),
+						zap.Any("query", c.QueryParams()),
+						zap.String("user_agent", c.Request().UserAgent()),
+						zap.String("ip", c.RealIP()),
+						zap.String("stack_trace", panicErr.StackTrace),
+						zap.Any("panic_value", r),
+					)
 
 					// Report to Sentry
 					if hub := sentry.GetHubFromContext(c.Request().Context()); hub != nil {

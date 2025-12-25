@@ -10,9 +10,10 @@ import (
 	"golang-boilerplate/internal/httpclient"
 	"golang-boilerplate/internal/monitoring"
 
+	"golang-boilerplate/internal/logger"
+
 	"github.com/Nerzal/gocloak/v13"
 	"github.com/getsentry/sentry-go"
-	log "github.com/sirupsen/logrus"
 )
 
 // KeycloakAuth implements AuthService using Keycloak
@@ -45,7 +46,7 @@ func (a *KeycloakAuth) ClientLogin() (*TokenInfo, error) {
 				hub.CaptureException(err)
 			})
 		}
-		log.Errorf("Failed to login to keycloak: %v", err)
+		logger.Sugar.Errorf("Failed to login to keycloak: %v", err)
 		return nil, errors.ExternalServiceError("Failed to login to keycloak", err).
 			WithOperation("login").
 			WithResource("keycloak")
@@ -71,7 +72,7 @@ func (a *KeycloakAuth) GetUserInfo(token string) (*User, error) {
 				hub.CaptureException(err)
 			})
 		}
-		log.Errorf("Failed to get user info: %v", err)
+		logger.Sugar.Errorf("Failed to get user info: %v", err)
 		return nil, errors.ExternalServiceError("Failed to get user info", err).
 			WithOperation("get_user_info").
 			WithResource("keycloak")
@@ -102,7 +103,7 @@ func (a *KeycloakAuth) ValidateToken(token string) (*gocloak.IntroSpectTokenResu
 				hub.CaptureException(err)
 			})
 		}
-		log.Errorf("Failed to validate token: %v", err)
+		logger.Sugar.Errorf("Failed to validate token: %v", err)
 		return nil, errors.ExternalServiceError("Failed to validate token", err).
 			WithOperation("validate_token").
 			WithResource("keycloak")
@@ -124,7 +125,7 @@ func (a *KeycloakAuth) DecodeAccessToken(ctx context.Context, token string, real
 				hub.CaptureException(err)
 			})
 		}
-		log.Errorf("Failed to decode access token custom claims: %v", err)
+		logger.Sugar.Errorf("Failed to decode access token custom claims: %v", err)
 		return nil, errors.ExternalServiceError("Failed to decode access token custom claims", err).
 			WithOperation("decode_access_token_custom_claims").
 			WithResource("keycloak")
@@ -155,7 +156,7 @@ func (a *KeycloakAuth) GetRequestingPartyToken(ctx context.Context, accessToken 
 				hub.CaptureException(err)
 			})
 		}
-		log.Errorf("Failed to get RPT: %v", err)
+		logger.Sugar.Errorf("Failed to get RPT: %v", err)
 		return nil, errors.ExternalServiceError("Failed to get RPT", err).
 			WithOperation("get_rpt").
 			WithResource("keycloak")
@@ -216,10 +217,11 @@ func (a *KeycloakAuth) getClients(ctx context.Context, adminToken string) ([]*go
 				hub.CaptureException(err)
 			})
 		}
-		log.WithFields(log.Fields{
-			"realm":     a.config.KeycloakRealm,
-			"client_id": a.config.KeycloakClientID,
-		}).Errorf("Failed to get clients: %v", err)
+		logger.Sugar.Errorw("Failed to get clients",
+			"realm", a.config.KeycloakRealm,
+			"client_id", a.config.KeycloakClientID,
+			"error", err,
+		)
 		return nil, errors.ExternalServiceError("Failed to get clients", err).
 			WithOperation("get_clients").
 			WithResource("keycloak")
@@ -239,11 +241,12 @@ func (a *KeycloakAuth) getClientRole(ctx context.Context, adminToken string, cli
 				hub.CaptureException(err)
 			})
 		}
-		log.WithFields(log.Fields{
-			"client_id": clientID,
-			"role":      roleName,
-			"realm":     a.config.KeycloakRealm,
-		}).Errorf("Failed to get client role: %v", err)
+		logger.Sugar.Errorw("Failed to get client role",
+			"client_id", clientID,
+			"role", roleName,
+			"realm", a.config.KeycloakRealm,
+			"error", err,
+		)
 
 		return nil, errors.ExternalServiceError("Failed to get client role", err).
 			WithOperation("get_client_role").
@@ -267,11 +270,12 @@ func (a *KeycloakAuth) AddClientRolesToUser(ctx context.Context, adminToken stri
 				hub.CaptureException(err)
 			})
 		}
-		log.WithFields(log.Fields{
-			"realm":     a.config.KeycloakRealm,
-			"client_id": clientID,
-			"user_id":   userID,
-		}).Errorf("Failed to get clients: %v", err)
+		logger.Sugar.Errorw("Failed to get clients",
+			"realm", a.config.KeycloakRealm,
+			"client_id", clientID,
+			"user_id", userID,
+			"error", err,
+		)
 
 		return errors.ExternalServiceError("Failed to get client", err).
 			WithOperation("get_client").
@@ -321,12 +325,13 @@ func (a *KeycloakAuth) AddClientRolesToUser(ctx context.Context, adminToken stri
 				hub.CaptureException(err)
 			})
 		}
-		log.WithFields(log.Fields{
-			"user_id":   userID,
-			"client_id": clientID,
-			"role":      *kcRole.ID,
-			"realm":     a.config.KeycloakRealm,
-		}).Errorf("Failed to add client roles to user: %v", err)
+		logger.Sugar.Errorw("Failed to add client roles to user",
+			"user_id", userID,
+			"client_id", clientID,
+			"role", *kcRole.ID,
+			"realm", a.config.KeycloakRealm,
+			"error", err,
+		)
 
 		return errors.ExternalServiceError("Failed to add client roles to user", err).
 			WithOperation("add_client_roles_to_user").
@@ -368,7 +373,7 @@ func (a *KeycloakAuth) SendVerificationMail(ctx context.Context, adminToken stri
 				hub.CaptureException(err)
 			})
 		}
-		log.Errorf("Failed to send verification email: %v", err)
+		logger.Sugar.Errorf("Failed to send verification email: %v", err)
 		return errors.ExternalServiceError("Failed to send verification email", err).
 			WithOperation("send_verification_email").
 			WithResource("keycloak")
@@ -463,12 +468,12 @@ func (a *KeycloakAuth) AddUserToOrganization(ctx context.Context, adminToken str
 				hub.CaptureException(err)
 			})
 		}
-		log.WithFields(log.Fields{
-			"error":           err.Error(),
-			"user_id":         userID,
-			"organization_id": organizationID,
-			"url":             url,
-		}).Error("Failed to add user to organization via Keycloak API")
+		logger.Sugar.Errorw("Failed to add user to organization via Keycloak API",
+			"error", err.Error(),
+			"user_id", userID,
+			"organization_id", organizationID,
+			"url", url,
+		)
 
 		return errors.ExternalServiceError("Failed to add user to organization", err).
 			WithOperation("add_user_to_organization").
@@ -477,10 +482,10 @@ func (a *KeycloakAuth) AddUserToOrganization(ctx context.Context, adminToken str
 			WithContext("organization_id", organizationID)
 	}
 
-	log.WithFields(log.Fields{
-		"user_id":         userID,
-		"organization_id": organizationID,
-	}).Info("Successfully added user to organization via Keycloak API")
+	logger.Sugar.Infow("Successfully added user to organization via Keycloak API",
+		"user_id", userID,
+		"organization_id", organizationID,
+	)
 
 	return nil
 }
@@ -508,11 +513,12 @@ func (a *KeycloakAuth) UpdateUser(ctx context.Context, adminToken string, userID
 				hub.CaptureException(err)
 			})
 		}
-		log.WithFields(log.Fields{
-			"user_id":      userID,
-			"body_request": userDto,
-			"realm":        a.config.KeycloakRealm,
-		}).Errorf("Failed to update user: %v", err)
+		logger.Sugar.Errorw("Failed to update user",
+			"user_id", userID,
+			"body_request", userDto,
+			"realm", a.config.KeycloakRealm,
+			"error", err,
+		)
 
 		return errors.ExternalServiceError("Failed to update user", err).
 			WithOperation("update_user").

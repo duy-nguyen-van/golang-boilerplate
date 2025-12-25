@@ -9,8 +9,10 @@ import (
 	"golang-boilerplate/internal/models"
 	"golang-boilerplate/internal/repositories"
 
+	"golang-boilerplate/internal/logger"
+
 	"github.com/getsentry/sentry-go"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type UserService interface {
@@ -57,9 +59,10 @@ func (s *userService) Create(ctx context.Context, req *dtos.CreateUserRequest) (
 				})
 			}
 
-			log.WithFields(log.Fields{
-				"company_id": companyID,
-			}).Errorf("Failed to get company for user creation: %v", err)
+			logger.Log.Error("Failed to get company for user creation",
+				zap.String("company_id", companyID),
+				zap.Error(err),
+			)
 
 			return nil, errors.NotFoundError("Company", err).
 				WithOperation("create_user").
@@ -89,9 +92,10 @@ func (s *userService) Create(ctx context.Context, req *dtos.CreateUserRequest) (
 			})
 		}
 
-		log.WithFields(log.Fields{
-			"body_request": req,
-		}).Errorf("Failed to create user: %v", err)
+		logger.Log.Error("Failed to create user",
+			zap.Any("body_request", req),
+			zap.Error(err),
+		)
 
 		return nil, errors.DatabaseError("Failed to create user", err).
 			WithOperation("create_user").
@@ -115,9 +119,10 @@ func (s *userService) GetOneByID(ctx context.Context, userID string) (*models.Us
 			})
 		}
 
-		log.WithFields(log.Fields{
-			"user_id": userID,
-		}).Errorf("Failed to get user: %v", err)
+		logger.Log.Error("Failed to get user",
+			zap.String("user_id", userID),
+			zap.Error(err),
+		)
 
 		return nil, errors.NotFoundError("User", err).
 			WithOperation("get_user").
@@ -143,10 +148,11 @@ func (s *userService) Update(ctx context.Context, userID string, req *dtos.Updat
 			})
 		}
 
-		log.WithFields(log.Fields{
-			"user_id":      userID,
-			"body_request": req,
-		}).Errorf("Failed to get user for update: %v", err)
+		logger.Log.Error("Failed to get user for update",
+			zap.String("user_id", userID),
+			zap.Any("body_request", req),
+			zap.Error(err),
+		)
 
 		return nil, errors.NotFoundError("User", err).
 			WithOperation("update_user").
@@ -197,9 +203,10 @@ func (s *userService) Update(ctx context.Context, userID string, req *dtos.Updat
 						})
 					}
 
-					log.WithFields(log.Fields{
-						"company_id": companyID,
-					}).Errorf("Failed to get company for user update: %v", err)
+					logger.Log.Error("Failed to get company for user update",
+						zap.String("company_id", companyID),
+						zap.Error(err),
+					)
 
 					return nil, errors.NotFoundError("Company", err).
 						WithOperation("update_user").
@@ -243,10 +250,11 @@ func (s *userService) Update(ctx context.Context, userID string, req *dtos.Updat
 			})
 		}
 
-		log.WithFields(log.Fields{
-			"user_id":      userID,
-			"body_request": req,
-		}).Errorf("Failed to update user: %v", err)
+		logger.Log.Error("Failed to update user",
+			zap.String("user_id", userID),
+			zap.Any("body_request", req),
+			zap.Error(err),
+		)
 
 		return nil, errors.DatabaseError("Failed to update user", err).
 			WithOperation("update_user").
@@ -270,9 +278,10 @@ func (s *userService) Delete(ctx context.Context, userID string) error {
 			})
 		}
 
-		log.WithFields(log.Fields{
-			"user_id": userID,
-		}).Errorf("Failed to get user for delete: %v", err)
+		logger.Log.Error("Failed to get user for delete",
+			zap.String("user_id", userID),
+			zap.Error(err),
+		)
 
 		return errors.NotFoundError("User", err).
 			WithOperation("delete_user").
@@ -292,9 +301,10 @@ func (s *userService) Delete(ctx context.Context, userID string) error {
 			})
 		}
 
-		log.WithFields(log.Fields{
-			"user_id": userID,
-		}).Errorf("Failed to delete user: %v", err)
+		logger.Log.Error("Failed to delete user",
+			zap.String("user_id", userID),
+			zap.Error(err),
+		)
 
 		return errors.DatabaseError("Failed to delete user", err).
 			WithOperation("delete_user").
@@ -319,9 +329,10 @@ func (s *userService) List(ctx context.Context, pageableRequest *dtos.UserPageab
 			})
 		}
 
-		log.WithFields(log.Fields{
-			"pageable_request": pageableRequest,
-		}).Errorf("Failed to get users: %v", err)
+		logger.Log.Error("Failed to get users",
+			zap.Any("pageable_request", pageableRequest),
+			zap.Error(err),
+		)
 
 		return nil, errors.DatabaseError("Failed to get users", err).
 			WithOperation("get_users").

@@ -9,8 +9,10 @@ import (
 	"golang-boilerplate/internal/models"
 	"golang-boilerplate/internal/repositories"
 
+	"golang-boilerplate/internal/logger"
+
 	"github.com/getsentry/sentry-go"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type CompanyService interface {
@@ -56,9 +58,10 @@ func (s *companyService) Create(ctx context.Context, req *dtos.CreateCompanyRequ
 			})
 		}
 
-		log.WithFields(log.Fields{
-			"body_request": req,
-		}).Errorf("Failed to create company: %v", err)
+		logger.Log.Error("Failed to create company",
+			zap.Any("body_request", req),
+			zap.Error(err),
+		)
 
 		return nil, errors.DatabaseError("Failed to create company", err).
 			WithOperation("create_company").
@@ -82,9 +85,10 @@ func (s *companyService) GetOneByID(ctx context.Context, companyID string) (*mod
 			})
 		}
 
-		log.WithFields(log.Fields{
-			"company_id": companyID,
-		}).Errorf("Failed to get company: %v", err)
+		logger.Log.Error("Failed to get company",
+			zap.String("company_id", companyID),
+			zap.Error(err),
+		)
 
 		return nil, errors.NotFoundError("Company", err).
 			WithOperation("get_company").
@@ -109,10 +113,11 @@ func (s *companyService) Update(ctx context.Context, companyID string, req *dtos
 			})
 		}
 
-		log.WithFields(log.Fields{
-			"company_id":   companyID,
-			"body_request": req,
-		}).Errorf("Failed to get company for update: %v", err)
+		logger.Log.Error("Failed to get company for update",
+			zap.String("company_id", companyID),
+			zap.Any("body_request", req),
+			zap.Error(err),
+		)
 
 		return nil, errors.NotFoundError("Company", err).
 			WithOperation("update_company").
@@ -142,10 +147,11 @@ func (s *companyService) Update(ctx context.Context, companyID string, req *dtos
 			})
 		}
 
-		log.WithFields(log.Fields{
-			"company_id":   companyID,
-			"body_request": req,
-		}).Errorf("Failed to update company: %v", err)
+		logger.Log.Error("Failed to update company",
+			zap.String("company_id", companyID),
+			zap.Any("body_request", req),
+			zap.Error(err),
+		)
 
 		return nil, errors.DatabaseError("Failed to update company", err).
 			WithOperation("update_company").
@@ -169,9 +175,10 @@ func (s *companyService) Delete(ctx context.Context, companyID string) error {
 			})
 		}
 
-		log.WithFields(log.Fields{
-			"company_id": companyID,
-		}).Errorf("Failed to get company for delete: %v", err)
+		logger.Log.Error("Failed to get company for delete",
+			zap.String("company_id", companyID),
+			zap.Error(err),
+		)
 
 		return errors.NotFoundError("Company", err).
 			WithOperation("delete_company").
@@ -191,9 +198,10 @@ func (s *companyService) Delete(ctx context.Context, companyID string) error {
 			})
 		}
 
-		log.WithFields(log.Fields{
-			"company_id": companyID,
-		}).Errorf("Failed to delete company: %v", err)
+		logger.Log.Error("Failed to delete company",
+			zap.String("company_id", companyID),
+			zap.Error(err),
+		)
 
 		return errors.DatabaseError("Failed to delete company", err).
 			WithOperation("delete_company").
@@ -217,9 +225,10 @@ func (s *companyService) List(ctx context.Context, pageableRequest *dtos.Company
 			})
 		}
 
-		log.WithFields(log.Fields{
-			"pageable_request": pageableRequest,
-		}).Errorf("Failed to get companies: %v", err)
+		logger.Log.Error("Failed to get companies",
+			zap.Any("pageable_request", pageableRequest),
+			zap.Error(err),
+		)
 
 		return nil, errors.DatabaseError("Failed to get companies", err).
 			WithOperation("get_companies").
