@@ -16,7 +16,7 @@ func CSRF(cfg *config.Config) echo.MiddlewareFunc {
 		CookieName:     "csrf_token",
 		CookiePath:     "/",
 		CookieSameSite: http.SameSiteLaxMode,
-		CookieSecure:   cfg.AppEnv == "production",
+		CookieSecure:   cfg.AppEnv == config.EnvironmentProduction,
 		CookieHTTPOnly: true,
 	})
 }

@@ -10,14 +10,38 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// Environment represents the application environment.
+type Environment string
+
+const (
+	EnvironmentDevelopment Environment = "development"
+	EnvironmentStaging     Environment = "staging"
+	EnvironmentProduction  Environment = "production"
+	EnvironmentTest        Environment = "test"
+)
+
+func (e Environment) String() string {
+	return string(e)
+}
+
+func (e Environment) IsDevelopment() bool {
+	return e == EnvironmentDevelopment || e == EnvironmentTest
+}
+
+func (e Environment) IsProduction() bool {
+	return e == EnvironmentProduction
+}
+
 // Config holds all configuration for the application
 type Config struct {
 	// Server configuration
-	AppEnv        string
+	AppEnv        Environment
 	AppName       string
 	AppVersion    string
 	Timezone      string
 	AppHTTPServer string
+	// AppRequestTimeout is the HTTP server read header timeout in seconds.
+	AppRequestTimeout int
 	AppBaseURL    string
 
 	// Database configuration
@@ -133,11 +157,12 @@ func Load() (*Config, error) {
 	}
 
 	cfg := &Config{
-		AppEnv:                       getEnv("APP_ENV", "development"),
+		AppEnv:                       Environment(getEnv("APP_ENV", "development")),
 		AppName:                      getEnv("APP_NAME", ""),
 		AppVersion:                   getEnv("APP_VERSION", "1.0.0"),
 		Timezone:                     getEnv("TIMEZONE", "UTC"),
-		AppHTTPServer:                getEnv("APP_HTTP_SERVER", "3000"),
+		AppHTTPServer:                getEnv("APP_HTTP_SERVER", ":3000"),
+		AppRequestTimeout:            getEnvAsInt("APP_REQUEST_TIMEOUT", 30),
 		AppBaseURL:                   getEnv("APP_BASE_URL", ""),
 		DatabaseHost:                 getEnv("POSTGRES_HOST", "localhost"),
 		DatabasePort:                 getEnv("POSTGRES_PORT", "5432"),

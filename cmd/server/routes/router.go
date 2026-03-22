@@ -1,7 +1,10 @@
 package routes
 
 import (
+	"net/http"
+
 	"golang-boilerplate/internal/config"
+	"golang-boilerplate/internal/constants"
 	"golang-boilerplate/internal/errors"
 	"golang-boilerplate/internal/handlers"
 	"golang-boilerplate/internal/integration/auth"
@@ -35,6 +38,10 @@ func Router(
 		return func(c echo.Context) error {
 			err := next(c)
 			if err != nil {
+				// Do not report missing routes / bad methods to Sentry (avoids noise when e.g. Swagger UI is not mounted)
+				if he, ok := err.(*echo.HTTPError); ok && (he.Code == http.StatusNotFound || he.Code == http.StatusMethodNotAllowed) {
+					return err
+				}
 				// Get the Sentry hub from context
 				if hub := sentryecho.GetHubFromContext(c); hub != nil {
 					// Capture the error with additional context
@@ -47,7 +54,7 @@ func Router(
 						scope.SetExtra("body", c.Get("log_body"))
 
 						// Add environment context
-						scope.SetTag("environment", cfg.AppEnv)
+						scope.SetTag("environment", cfg.AppEnv.String())
 						scope.SetTag("service", cfg.AppName)
 						scope.SetTag("handler", c.Path())
 
@@ -75,6 +82,7 @@ func Router(
 
 	r.Use(middlewares.LogBodyMiddleware)
 	r.Use(middleware.RequestID())
+	r.Use(middlewares.RequestContext(cfg.AppName))
 	r.Use(errors.RecoveryMiddleware(cfg)) // Add panic recovery
 	r.Use(errors.ErrorMiddleware())       // Add centralized error handling
 	r.Use(middlewares.Security())         // Add secure headers (XSS, HSTS, etc.)
@@ -84,8 +92,7 @@ func Router(
 	r.Use(middlewares.DefaultRateLimit())
 	r.Use(middlewares.RequestLogging(cfg))
 
-	// Swagger - at root level
-	if cfg.AppEnv != "production" {
+	if cfg.AppEnv != config.EnvironmentProduction {
 		r.GET("/swagger/*", echoSwagger.WrapHandler, middlewares.BasicAuthMiddleware(*cfg))
 	}
 
@@ -103,20 +110,61 @@ func Router(
 
 	// User routes
 	userGroup := v1.Group("/users")
-	userGroup.POST("", userHandler.CreateUser, middlewares.AuthMiddleware(authService), middlewares.RequirePermission(cfg, authService, "user", "create"))
-	userGroup.GET("/:id", userHandler.GetOneByID, middlewares.AuthMiddleware(authService), middlewares.RequirePermission(cfg, authService, "user", "read"))
-	userGroup.PUT("/:id", userHandler.UpdateUser, middlewares.AuthMiddleware(authService), middlewares.RequirePermission(cfg, authService, "user", "update"))
-	userGroup.DELETE("/:id", userHandler.DeleteUser, middlewares.AuthMiddleware(authService), middlewares.RequirePermission(cfg, authService, "user", "delete"))
-	userGroup.GET("", userHandler.GetUsers, middlewares.AuthMiddleware(authService))
-	userGroup.GET("/test-rest-client", userHandler.TestRestClient, middlewares.AuthMiddleware(authService))
+
+	userGroup.GET("", userHandler.GetUsers,
+		middlewares.AuthMiddleware(cfg, authService),
+		middlewares.RequireRole(cfg, constants.UserViewRoles...),
+	)
+
+	userGroup.GET("/test-rest-client", userHandler.TestRestClient, middlewares.AuthMiddleware(cfg, authService))
+
+	userGroup.POST("", userHandler.CreateUser,
+		middlewares.AuthMiddleware(cfg, authService),
+		middlewares.RequireRole(cfg, constants.RoleAdmin, constants.RoleUserManager),
+	)
+
+	userGroup.GET("/:id", userHandler.GetOneByID,
+		middlewares.AuthMiddleware(cfg, authService),
+		middlewares.RequireRole(cfg, constants.RoleAdmin, constants.RoleUserViewer),
+	)
+
+	userGroup.PUT("/:id", userHandler.UpdateUser,
+		middlewares.AuthMiddleware(cfg, authService),
+		middlewares.RequireRole(cfg, constants.UserManagementRoles...),
+	)
+
+	userGroup.DELETE("/:id", userHandler.DeleteUser,
+		middlewares.AuthMiddleware(cfg, authService),
+		middlewares.RequireRole(cfg, constants.RoleAdmin, constants.RoleUserManager),
+	)
 
 	// Company routes
 	companyGroup := v1.Group("/companies")
-	companyGroup.POST("", companyHandler.CreateCompany, middlewares.AuthMiddleware(authService), middlewares.RequirePermission(cfg, authService, "company", "create"))
-	companyGroup.GET("/:id", companyHandler.GetOneByID, middlewares.AuthMiddleware(authService), middlewares.RequirePermission(cfg, authService, "company", "read"))
-	companyGroup.PUT("/:id", companyHandler.UpdateCompany, middlewares.AuthMiddleware(authService), middlewares.RequirePermission(cfg, authService, "company", "update"))
-	companyGroup.DELETE("/:id", companyHandler.DeleteCompany, middlewares.AuthMiddleware(authService), middlewares.RequirePermission(cfg, authService, "company", "delete"))
-	companyGroup.GET("", companyHandler.GetCompanies, middlewares.AuthMiddleware(authService), middlewares.RequirePermission(cfg, authService, "company", "read"))
+
+	companyGroup.POST("", companyHandler.CreateCompany,
+		middlewares.AuthMiddleware(cfg, authService),
+		middlewares.RequireRole(cfg, constants.RoleAdmin, constants.RoleCompanyManager, constants.RoleCompanyCreator),
+	)
+
+	companyGroup.GET("/:id", companyHandler.GetOneByID,
+		middlewares.AuthMiddleware(cfg, authService),
+		middlewares.RequireRole(cfg, constants.CompanyViewRoles...),
+	)
+
+	companyGroup.PUT("/:id", companyHandler.UpdateCompany,
+		middlewares.AuthMiddleware(cfg, authService),
+		middlewares.RequireRole(cfg, constants.RoleAdmin, constants.RoleCompanyManager, constants.RoleCompanyEditor),
+	)
+
+	companyGroup.DELETE("/:id", companyHandler.DeleteCompany,
+		middlewares.AuthMiddleware(cfg, authService),
+		middlewares.RequireRole(cfg, constants.RoleAdmin),
+	)
+
+	companyGroup.GET("", companyHandler.GetCompanies,
+		middlewares.AuthMiddleware(cfg, authService),
+		middlewares.RequireRole(cfg, constants.CompanyViewRoles...),
+	)
 
 	return r
 }

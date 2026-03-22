@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/newrelic/go-agent/v3/newrelic"
-	"github.com/ory/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -84,7 +83,9 @@ func (c *NRCore) Write(entry zapcore.Entry, fields []zap.Field) error {
 	}
 
 	// Add standard fields
-	attributes["app"] = viper.GetString("NEWRELIC_APP_NAME")
+	if cfg, ok := c.app.Config(); ok {
+		attributes["app"] = cfg.AppName
+	}
 	attributes["level"] = entry.Level.String()
 
 	// Record the log to NewRelic

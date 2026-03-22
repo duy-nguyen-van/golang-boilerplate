@@ -17,7 +17,6 @@ A production-ready Go web application built on Echo, featuring clean architectur
 - [Example API Usage](#example-api-usage)
 - [Development](#development)
   - [Available Make Commands](#available-make-commands)
-  - [Swagger](#swagger)
   - [Testing](#testing)
     - [Test Organization](#test-organization)
     - [Running Tests](#running-tests)
@@ -91,10 +90,7 @@ golang-boilerplate/
 │     └─ routes/
 │        └─ router.go            # Echo routes and middleware
 │
-├─ docs/                         # Swagger docs output (generated)
-│  ├─ docs.go
-│  ├─ swagger.json
-│  └─ swagger.yaml
+├─ docs/                         # Project documentation (markdown)
 │
 ├─ internal/
 │  ├─ cache/                     # Cache abstraction + Redis
@@ -188,8 +184,6 @@ golang-boilerplate/
 # Database migrations
 go install github.com/pressly/goose/v3/cmd/goose@latest
 
-# Swagger generator
-go install github.com/swaggo/swag/cmd/swag@latest
 ```
 
 ### Setup
@@ -236,39 +230,38 @@ make up
 
 #### Public Endpoints
 
-- `GET /v1/` - Health check
-- `GET /v1/swagger/*` - Swagger UI (non-production, protected by basic auth)
+- `GET /api/v1/` - Health check
 
 #### Health Check Endpoints
 
-- `GET /v1/health/database` - Database health status with connection metrics
-- `GET /v1/health/metrics` - Comprehensive database metrics and configuration
+- `GET /api/v1/health/database` - Database health status with connection metrics
+- `GET /api/v1/health/metrics` - Comprehensive database metrics and configuration
 
 #### Protected Endpoints (require JWT)
 
 **User Management:**
 
-- `POST /v1/users` - Create user
-- `GET /v1/users/{id}` - Get user by ID
-- `PUT /v1/users/{id}` - Update user
-- `DELETE /v1/users/{id}` - Delete user
-- `GET /v1/users` - Get users list
-- `GET /v1/users/test-rest-client` - Demo endpoint to test outbound REST client
+- `POST /api/v1/users` - Create user
+- `GET /api/v1/users/{id}` - Get user by ID
+- `PUT /api/v1/users/{id}` - Update user
+- `DELETE /api/v1/users/{id}` - Delete user
+- `GET /api/v1/users` - Get users list
+- `GET /api/v1/users/test-rest-client` - Demo endpoint to test outbound REST client
 
 **Company Management:**
 
-- `POST /v1/companies` - Create new company
-- `GET /v1/companies/{id}` - Get company by ID
-- `PUT /v1/companies/{id}` - Update company
-- `DELETE /v1/companies/{id}` - Delete company
-- `GET /v1/companies` - Get companies list
+- `POST /api/v1/companies` - Create new company
+- `GET /api/v1/companies/{id}` - Get company by ID
+- `PUT /api/v1/companies/{id}` - Update company
+- `DELETE /api/v1/companies/{id}` - Delete company
+- `GET /api/v1/companies` - Get companies list
 
 ### Example API Usage
 
 #### Create user (with JWT token)
 
 ```bash
-curl -X POST http://localhost:3000/v1/users \
+curl -X POST http://localhost:3000/api/v1/users \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"name": "John Doe", "email": "john@example.com"}'
@@ -277,14 +270,14 @@ curl -X POST http://localhost:3000/v1/users \
 #### Get user by ID (with JWT token)
 
 ```bash
-curl -X GET http://localhost:3000/v1/users/123 \
+curl -X GET http://localhost:3000/api/v1/users/123 \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
 #### Create company (with JWT token)
 
 ```bash
-curl -X POST http://localhost:3000/v1/companies \
+curl -X POST http://localhost:3000/api/v1/companies \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"name": "Acme Corp", "description": "A great company"}'
@@ -293,13 +286,13 @@ curl -X POST http://localhost:3000/v1/companies \
 #### Database health check
 
 ```bash
-curl -X GET http://localhost:3000/v1/health/database
+curl -X GET http://localhost:3000/api/v1/health/database
 ```
 
 #### Database metrics
 
 ```bash
-curl -X GET http://localhost:3000/v1/health/metrics
+curl -X GET http://localhost:3000/api/v1/health/metrics
 ```
 
 ## Development
@@ -338,25 +331,6 @@ make migration-create name=add_table
 make seed-up
 make seed-down
 
-# Swagger docs
-make swagger-load
-```
-
-### Swagger
-
-- In non-production, Swagger is available at `GET /v1/swagger/*` and protected by basic auth.
-- Set `BASIC_AUTH_USER` and `BASIC_AUTH_SECRET` in `.env`.
-- Regenerate docs after handler changes:
-
-```bash
-make swagger-load
-```
-
-Example request (non-production):
-
-```bash
-curl -u "$BASIC_AUTH_USER:$BASIC_AUTH_SECRET" \
-  http://localhost:3000/v1/swagger/index.html
 ```
 
 ### Testing
@@ -804,8 +778,6 @@ Set via `.env` (loaded by viper and godotenv):
 - **Email**: `EMAIL_PROVIDER` (ses), `AWS_SES_REGION`, `AWS_SES_ACCESS_KEY`, `AWS_SES_SECRET_KEY`
 - **Rate Limiting**: `DEFAULT_RATE_LIMIT`, `AUTH_RATE_LIMIT`, `PUBLIC_RATE_LIMIT`, `RATE_LIMIT`, `RATE_LIMIT_DURATION`
 - **Observability**: `NEWRELIC_APP_NAME`, `NEWRELIC_LICENSE`, `SENTRY_DSN`
-- **Swagger Basic Auth**: `BASIC_AUTH_USER`, `BASIC_AUTH_SECRET`
-
 ### Database Configuration Parameters
 
 | Parameter                     | Default | Description                        |
@@ -847,13 +819,11 @@ docker run -p 3000:3000 --env-file .env golang-boilerplate
 ### Metrics to Monitor
 
 1. **Connection Pool Utilization**
-
    - Open connections vs. max connections
    - Idle connections
    - Wait times
 
 2. **Health Status**
-
    - Connection health
    - Response times
    - Error rates
@@ -873,19 +843,16 @@ docker run -p 3000:3000 --env-file .env golang-boilerplate
 ### Common Issues and Solutions
 
 1. **Connection Pool Exhaustion**
-
    - Increase `DATABASE_MAX_OPEN_CONNS`
    - Check for connection leaks
    - Monitor connection usage patterns
 
 2. **Slow Queries**
-
    - Check `DATABASE_QUERY_TIMEOUT`
    - Monitor query performance
    - Optimize database queries
 
 3. **Connection Failures**
-
    - Check network connectivity
    - Verify database credentials
    - Monitor database server health
@@ -907,8 +874,8 @@ docker run -p 3000:3000 --env-file .env golang-boilerplate
 2. **Check Health Endpoints**
 
    ```bash
-   curl http://localhost:3000/v1/health/database
-   curl http://localhost:3000/v1/health/metrics
+   curl http://localhost:3000/api/v1/health/database
+   curl http://localhost:3000/api/v1/health/metrics
    ```
 
 3. **Monitor Logs**

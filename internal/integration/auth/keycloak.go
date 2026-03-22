@@ -120,7 +120,7 @@ func (a *KeycloakAuth) DecodeAccessToken(ctx context.Context, token string, real
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("auth_error", "invalid_claims")
 				scope.SetTag("service", "fast-ai")
-				scope.SetTag("environment", a.config.AppEnv)
+				scope.SetTag("environment", a.config.AppEnv.String())
 				scope.SetExtra("error_details", err.Error())
 				hub.CaptureException(err)
 			})

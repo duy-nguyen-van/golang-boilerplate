@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"golang-boilerplate/internal/config"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -118,12 +119,15 @@ func (c *SentryCore) Sync() error {
 	return nil
 }
 
-func InitSentry(config config.Config) {
+func InitSentry(cfg config.Config) {
+	if strings.TrimSpace(cfg.SentryDSN) == "" {
+		return
+	}
 	err := sentry.Init(sentry.ClientOptions{
-		Dsn:              config.SentryDSN,
-		Environment:      config.AppEnv,
-		Release:          config.AppName + "@" + config.AppVersion,
-		Debug:            config.AppEnv == "development",
+		Dsn:              cfg.SentryDSN,
+		Environment:      cfg.AppEnv.String(),
+		Release:          cfg.AppName + "@" + cfg.AppVersion,
+		Debug:            cfg.AppEnv == config.EnvironmentDevelopment,
 		AttachStacktrace: true,
 		EnableTracing:    true,
 		EnableLogs:       true,

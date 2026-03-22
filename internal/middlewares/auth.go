@@ -3,6 +3,7 @@ package middlewares
 import (
 	"context"
 	"net/http"
+	"slices"
 	"strings"
 
 	"golang-boilerplate/internal/config"
@@ -13,12 +14,11 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/labstack/echo/v4"
-	"github.com/ory/viper"
 	"go.uber.org/zap"
 )
 
 // AuthMiddleware creates middleware for JWT authentication
-func AuthMiddleware(authService auth.AuthService) echo.MiddlewareFunc {
+func AuthMiddleware(cfg *config.Config, authService auth.AuthService) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			// Get Authorization header
@@ -67,7 +67,7 @@ func AuthMiddleware(authService auth.AuthService) echo.MiddlewareFunc {
 					hub.WithScope(func(scope *sentry.Scope) {
 						scope.SetTag("auth_error", "invalid_claims")
 						scope.SetTag("service", "fast-ai")
-						scope.SetTag("environment", viper.GetString("APP_ENV"))
+						scope.SetTag("environment", cfg.AppEnv.String())
 						scope.SetExtra("path", c.Request().URL.Path)
 						scope.SetExtra("method", c.Request().Method)
 						scope.SetExtra("ip", c.RealIP())
@@ -98,26 +98,25 @@ func AuthMiddleware(authService auth.AuthService) echo.MiddlewareFunc {
 }
 
 // RequireRole creates middleware that requires specific roles
+// It checks both realm-level roles and client-level roles from TokenClaims
 func RequireRole(cfg *config.Config, roles ...string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			user, ok := c.Get(cfg.KeycloakKeyClaim).(*auth.User)
+			claims, ok := c.Get(cfg.KeycloakKeyClaim).(*auth.TokenClaims)
 			if !ok {
 				return c.JSON(http.StatusUnauthorized, map[string]string{
 					"error": "User not authenticated",
 				})
 			}
 
+			// Extract all roles from TokenClaims
+			userRoles := extractRolesFromClaims(claims, cfg.KeycloakClientID)
+
 			// Check if user has any of the required roles
 			hasRole := false
 			for _, requiredRole := range roles {
-				for _, userRole := range user.Roles {
-					if userRole == requiredRole {
-						hasRole = true
-						break
-					}
-				}
-				if hasRole {
+				if slices.Contains(userRoles, requiredRole) {
+					hasRole = true
 					break
 				}
 			}
@@ -131,6 +130,21 @@ func RequireRole(cfg *config.Config, roles ...string) echo.MiddlewareFunc {
 			return next(c)
 		}
 	}
+}
+
+// extractRolesFromClaims extracts all roles from TokenClaims (realm + client roles)
+func extractRolesFromClaims(claims *auth.TokenClaims, clientID string) []string {
+	var roles []string
+
+	// Add realm-level roles
+	roles = append(roles, claims.RealmAccess.Roles...)
+
+	// Add client-level roles for the specific client
+	if clientRoles, exists := claims.ResourceAccess[clientID]; exists {
+		roles = append(roles, clientRoles.Roles...)
+	}
+
+	return roles
 }
 
 // RequireUMA enforces resource/scope via Keycloak Authorization Services (RPT)

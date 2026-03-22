@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"golang-boilerplate/docs"
 	"golang-boilerplate/internal/cache"
@@ -28,7 +27,6 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/newrelic/go-agent/v3/newrelic"
-	"github.com/ory/viper"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -46,8 +44,9 @@ func NewHTTPServer(lc fx.Lifecycle,
 	handler := routes.Router(userHandler, companyHandler, healthHandler, authProvider, nrApp, cfg).Server.Handler
 
 	srv := &http.Server{
-		Addr: viper.GetString("APP_HTTP_SERVER"), Handler: handler,
-		ReadHeaderTimeout: time.Second * time.Duration(viper.GetInt("APP_REQUEST_TIMEOUT")),
+		Addr:              cfg.AppHTTPServer,
+		Handler:           handler,
+		ReadHeaderTimeout: time.Duration(cfg.AppRequestTimeout) * time.Second,
 	}
 
 	lc.Append(fx.Hook{
@@ -104,7 +103,6 @@ func NewHTTPServer(lc fx.Lifecycle,
 // @name Authorization
 // @description Bearer Token Authentication. Use "Bearer {token}" as the value.
 func main() {
-	InitConfig(".env")
 	// Ensure Swagger spec is registered and optionally override fields at runtime
 	docs.SwaggerInfo.BasePath = "/api/v1"
 	cfg, err := config.Load()
@@ -114,7 +112,7 @@ func main() {
 		os.Exit(1)
 	}
 	// Initialize global logger before any middleware uses it
-	logger.Init(cfg.LogLevel, cfg.AppEnv)
+	logger.Init(cfg.LogLevel, cfg.AppEnv.String())
 	nrApp := monitoring.InitNewRelic(*cfg)
 	monitoring.InitSentry(*cfg)
 
@@ -174,19 +172,6 @@ func main() {
 
 func ProvideValidator() *validator.Validate {
 	return validator.New()
-}
-
-func InitConfig(path string) {
-	viper.AutomaticEnv()
-	viper.SetConfigFile(path)
-	err := viper.ReadInConfig()
-	var pathErr *os.PathError
-	if errors.As(err, &pathErr) {
-		// Use standard log for warnings before logger is initialized
-		fmt.Fprintf(os.Stderr, "no config file '%s' not found. Using default values\n", path)
-	} else if err != nil { // Handle other errors that occurred while reading the config file
-		panic(fmt.Errorf("fatal error while reading the config file: %w", err))
-	}
 }
 
 func ProvideGormPostgres(cfg *config.Config) *db.PostgresDB {

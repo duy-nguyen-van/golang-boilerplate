@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"golang-boilerplate/internal/config"
+	"golang-boilerplate/internal/request"
 
 	"golang-boilerplate/internal/logger"
 
@@ -30,7 +31,7 @@ func RecoveryMiddleware(cfg *config.Config) echo.MiddlewareFunc {
 						WithOperation("panic_recovery")
 
 					// Only expose panic details to client in development
-					if cfg != nil && cfg.AppEnv == "development" {
+					if cfg != nil && cfg.AppEnv == config.EnvironmentDevelopment {
 						panicErr = panicErr.
 							WithContext("panic_value", r).
 							WithContext("stack_trace", string(debug.Stack()))
@@ -38,6 +39,10 @@ func RecoveryMiddleware(cfg *config.Config) echo.MiddlewareFunc {
 						// Always capture stack trace internally for logs/Sentry, but don't expose in response
 						panicErr.StackTrace = string(debug.Stack())
 					}
+
+					ctx := c.Request().Context()
+					correlationID, _ := request.CorrelationIDFromContext(ctx)
+					languageCode, _ := request.LanguageCodeFromContext(ctx)
 
 					// Log the panic
 					logger.Log.Error("Application panic recovered",
@@ -50,12 +55,14 @@ func RecoveryMiddleware(cfg *config.Config) echo.MiddlewareFunc {
 						zap.Any("query", c.QueryParams()),
 						zap.String("user_agent", c.Request().UserAgent()),
 						zap.String("ip", c.RealIP()),
+						zap.String("correlation_id", correlationID),
+						zap.String("language_code", languageCode),
 						zap.String("stack_trace", panicErr.StackTrace),
 						zap.Any("panic_value", r),
 					)
 
 					// Report to Sentry
-					if hub := sentry.GetHubFromContext(c.Request().Context()); hub != nil {
+					if hub := sentry.GetHubFromContext(ctx); hub != nil {
 						hub.WithScope(func(scope *sentry.Scope) {
 							scope.SetTag("error_code", panicErr.Code)
 							scope.SetTag("error_type", string(panicErr.Type))
@@ -67,6 +74,8 @@ func RecoveryMiddleware(cfg *config.Config) echo.MiddlewareFunc {
 							scope.SetExtra("query", c.QueryParams())
 							scope.SetExtra("user_agent", c.Request().UserAgent())
 							scope.SetExtra("ip", c.RealIP())
+							scope.SetExtra("correlation_id", correlationID)
+							scope.SetExtra("language_code", languageCode)
 							hub.CaptureException(panicErr)
 						})
 					}

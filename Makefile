@@ -17,7 +17,7 @@ dep:
 	@go mod tidy
 
 container-up:
-	docker compose up -d
+	set -a && source cmd/server/.env && set +a && docker compose up -d
 
 container-down:
 	docker compose down

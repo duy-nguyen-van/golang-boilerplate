@@ -58,7 +58,8 @@ func (h *HealthHandler) DatabaseHealthCheck(c echo.Context) error {
 		return h.InternalErrorResponse(c, "Database not initialized", nil)
 	}
 
-	healthStatus := h.db.HealthCheck()
+	// Use fast, cached health checks to avoid excessive load on the database
+	healthStatus := h.db.FastHealthCheck()
 	metrics := h.db.GetMetrics()
 
 	response := map[string]interface{}{

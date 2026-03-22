@@ -51,6 +51,24 @@ services:
     networks:
       - app-network
 
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped
+    ports:
+      - "8082:8080"
+    networks:
+      - app-network
+    env_file:
+      - cmd/server/.env
+    environment:
+      - ADMINER_DESIGN=pepa-linha
+      - ADMINER_DEFAULT_SERVER=postgres
+      - ADMINER_DEFAULT_DB_NAME=${POSTGRES_DB:-postgres}
+      - ADMINER_DEFAULT_USERNAME=${POSTGRES_USER:-postgres}
+      - ADMINER_DEFAULT_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+    depends_on:
+      - postgres
+
 volumes:
   postgres_data:
   redis_data:

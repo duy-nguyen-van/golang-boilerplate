@@ -266,7 +266,13 @@ func (h *ErrorHandler) reportToSentry(c echo.Context, appErr *AppError) {
 func (h *ErrorHandler) errorResponse(c echo.Context, appErr *AppError) error {
 	res := &dtos.BaseResponse[any]{}
 	res.Meta = dtos.GetMeta(c, appErr.Code, appErr.HTTPStatus)
-	res.Meta.Message = appErr.Message
+
+	// Prefer localized message when available; fall back to the AppError message
+	// if the i18n layer does not provide a translation.
+	defaultKey := fmt.Sprintf("Code_%s", appErr.Code)
+	if res.Meta.Message == defaultKey && appErr.Message != "" {
+		res.Meta.Message = appErr.Message
+	}
 
 	// Include field errors in the response if they exist
 	if len(appErr.Context) > 0 {

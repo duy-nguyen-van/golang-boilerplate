@@ -12,13 +12,13 @@ import (
 
 	"golang-boilerplate/internal/config"
 	"golang-boilerplate/internal/integration/auth"
+	"golang-boilerplate/internal/request"
 
 	"golang-boilerplate/internal/logger"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/ory/viper"
 	"go.uber.org/zap"
 )
 
@@ -91,13 +91,19 @@ func RequestLogging(cfg *config.Config) echo.MiddlewareFunc {
 			}
 			jsonHeadersStr, _ := json.Marshal(headers)
 
+			ctx := c.Request().Context()
+			correlationID, _ := request.CorrelationIDFromContext(ctx)
+			languageCode, _ := request.LanguageCodeFromContext(ctx)
+
 			// Format log message with all fields
-			logMsg := fmt.Sprintf("Request: %s %s (status=%d, latency=%v, request_id=%s, remote_ip=%s, user_agent=%s, user_id=%s, org_id=%s, payload=%s, query=%s, path_params=%s, headers=%s, environment=%s, service=fast-ai, version=%s, timestamp=%d, hostname=%s, protocol=%s)",
+			logMsg := fmt.Sprintf("Request: %s %s (status=%d, latency=%v, request_id=%s, correlation_id=%s, language=%s, remote_ip=%s, user_agent=%s, user_id=%s, org_id=%s, payload=%s, query=%s, path_params=%s, headers=%s, environment=%s, service=fast-ai, version=%s, timestamp=%d, hostname=%s, protocol=%s)",
 				values.Method,
 				values.URI,
 				values.Status,
 				values.Latency,
 				values.RequestID,
+				correlationID,
+				languageCode,
 				values.RemoteIP,
 				values.UserAgent,
 				userID,
@@ -106,8 +112,8 @@ func RequestLogging(cfg *config.Config) echo.MiddlewareFunc {
 				string(jsonQueryStr),
 				string(jsonParamStr),
 				string(jsonHeadersStr),
-				viper.GetString("APP_ENV"),
-				viper.GetString("APP_VERSION"),
+				cfg.AppEnv.String(),
+				cfg.AppVersion,
 				time.Now().UnixMilli(),
 				c.Request().Host,
 				c.Request().Proto,
@@ -124,6 +130,8 @@ func RequestLogging(cfg *config.Config) echo.MiddlewareFunc {
 				zap.Duration("latency", values.Latency),
 				zap.String("request_id", values.RequestID),
 				zap.String("remote_ip", values.RemoteIP),
+				zap.String("correlation_id", correlationID),
+				zap.String("language_code", languageCode),
 				zap.String("user_agent", values.UserAgent),
 				zap.String("user_id", userID),
 				zap.String("user_login", userLoginInfo),
@@ -132,9 +140,9 @@ func RequestLogging(cfg *config.Config) echo.MiddlewareFunc {
 				zap.String("query", string(jsonQueryStr)),
 				zap.String("path_params", string(jsonParamStr)),
 				zap.String("headers", string(jsonHeadersStr)),
-				zap.String("environment", viper.GetString("APP_ENV")),
+				zap.String("environment", cfg.AppEnv.String()),
 				zap.String("service", "fast-ai"),
-				zap.String("version", viper.GetString("APP_VERSION")),
+				zap.String("version", cfg.AppVersion),
 				zap.Int64("timestamp", time.Now().UnixMilli()),
 				zap.String("hostname", c.Request().Host),
 				zap.String("protocol", c.Request().Proto),
