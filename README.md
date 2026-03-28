@@ -69,7 +69,7 @@ A production-ready Go web application built on Echo, featuring clean architectur
 - **Comprehensive Error Handling**: Structured error system with context, logging, and monitoring
 - **Authentication**: JWT-based authentication with Keycloak integration
 - **Caching**: Redis cache provider
-- **Database**: PostgreSQL with migrations (goose)
+- **Database**: PostgreSQL with migrations ([Atlas](https://atlasgo.io/))
 - **Email**: AWS SES integration
 - **Logging**: Structured logging with Zap
 - **Observability**: New Relic APM + Sentry error tracking
@@ -83,8 +83,8 @@ A production-ready Go web application built on Echo, featuring clean architectur
 golang-boilerplate/
 ├─ cmd/
 │  ├─ migrations/
-│  │  └─ sql/
-│  │     └─ 20250911012728_init_database.sql
+│  │  └─ sql/                  # Atlas migration files + atlas.sum
+│  │     └─ 20260328081444_init_tables.sql
 │  └─ server/
 │     ├─ main.go                 # Application entrypoint + FX wiring
 │     └─ routes/
@@ -162,6 +162,7 @@ golang-boilerplate/
 │     └─ i18n/
 │        └─ translator.go
 │
+├─ atlas.hcl                   # Atlas env (GORM schema → migrate diff)
 ├─ Dockerfile
 ├─ docker-compose.yml
 ├─ go.mod
@@ -181,10 +182,14 @@ golang-boilerplate/
 #### Developer tools
 
 ```bash
-# Database migrations
-go install github.com/pressly/goose/v3/cmd/goose@latest
+# Database migrations — install the Atlas CLI (see https://atlasgo.io/getting-started#installation)
+# macOS (Homebrew):
+brew install ariga/tap/atlas
 
+# Or use the install script from the Atlas docs for Linux/other platforms.
 ```
+
+Docker is required for some Atlas commands (for example `migrate-down` and `migrate-generate`), which use a temporary dev database (`DB_DEV_URL` defaults to `docker://postgres/18/dev` in the `Makefile`).
 
 ### Setup
 
@@ -198,17 +203,13 @@ go mod tidy
 
 #### 2. Configure environment
 
-##### 2.1. Configure migrations environment (goose)
-
-```bash
-cp examples/env/migrations.env.example cmd/migrations/.env
-```
-
-##### 2.2. Configure server environment
+##### 2.1. Configure server environment (app + migrations)
 
 ```bash
 cp examples/env/server.env.example cmd/server/.env
 ```
+
+Migration Make targets read PostgreSQL settings from `cmd/server/.env` (see `Makefile`: `POSTGRES_*` are composed into `DB_DSN` for Atlas).
 
 #### 3. Start dependencies with Docker
 
@@ -219,8 +220,8 @@ make container-up
 #### 4. Run the application locally
 
 ```bash
-# Run DB migrations (configure cmd/migrations/.env as needed for goose)
-make migration-up
+# Run DB migrations (uses DB settings from cmd/server/.env)
+make migrate-up
 
 # Start the server
 make up
@@ -321,15 +322,16 @@ make test-race            # Run tests with race detection
 make test-verbose         # Run tests with verbose output
 make test-specific TEST=TestName  # Run a specific test
 
-# Migrations (goose, reads env from cmd/migrations/.env)
-make migration-status
-make migration-up
-make migration-down
-make migration-create name=add_table
-
-# Seeds (optional, if configured)
-make seed-up
-make seed-down
+# Migrations (Atlas; DB URL from cmd/server/.env via Makefile DB_DSN)
+make migrate-status
+make migrate-up
+make migrate-up-preview      # dry-run apply
+make migrate-down          # requires Docker dev URL by default
+make migrate-down-preview
+make migrate-create name=add_table
+make migrate-hash          # refresh atlas.sum after editing migrations
+make migrate-inspect       # inspect live schema
+make migrate-generate name=my_change   # GORM diff → new migration (atlas.hcl env "gorm")
 
 ```
 
@@ -892,23 +894,43 @@ docker run -p 3000:3000 --env-file .env golang-boilerplate
 
 ## Database Migrations
 
+Migrations are managed with [Atlas](https://atlasgo.io/). SQL files live under `cmd/migrations/sql/`; the checksum file `cmd/migrations/sql/atlas.sum` must stay in sync—run `make migrate-hash` after you add or edit migration files.
+
+Configuration:
+
+- **`atlas.hcl`** — defines the `gorm` env: loads schema from `internal/models` via [atlas-provider-gorm](https://github.com/ariga/atlas-provider-gorm), writes diffs into `cmd/migrations/sql`, and uses a dev database for planning.
+- **`Makefile`** — sets `MIGRATION_DIR` (`file://cmd/migrations/sql`), builds `DB_DSN` from `cmd/server/.env`, and sets `DB_DEV_URL` (default `docker://postgres/18/dev`) for commands that need a dev instance.
+
+Common commands:
+
 ```bash
-# Migration status
-make migration-status
+# Status and apply
+make migrate-status
+make migrate-up
+make migrate-up-preview
 
-# Run migrations up/down (configure cmd/migrations/.env for goose)
-make migration-up
-make migration-down
+# Roll back (needs a working Docker setup for the default dev URL)
+make migrate-down
+make migrate-down-preview
 
-# Create a new migration
-make migration-create name=add_users
+# New empty migration file
+make migrate-create name=add_users
+
+# Generate a migration from GORM models (run from repo root; set name=...)
+make migrate-generate name=describe_your_change
+
+# After hand-editing SQL migrations
+make migrate-hash
 ```
+
+For full Atlas CLI options, see the [Atlas documentation](https://atlasgo.io/docs).
 
 ## Production Deployment
 
 1. Build and push Docker image or deploy the binary built from `cmd/server`.
 2. Set `APP_ENV=production` and all required env vars.
-3. Expose the port configured by `APP_HTTP_SERVER` (e.g. `:3000`).
+3. Apply database migrations before or during rollout (for example `atlas migrate apply --dir "file://cmd/migrations/sql" --url "$DATABASE_URL"`, or your orchestrator’s equivalent).
+4. Expose the port configured by `APP_HTTP_SERVER` (e.g. `:3000`).
 
 ## Contributing
 
