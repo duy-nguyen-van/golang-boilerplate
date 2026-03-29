@@ -40,7 +40,7 @@ func (a *StripeAdapter) CreateCheckoutSession(ctx context.Context, priceID strin
 		},
 		Customer: stripe.String(user.StripeCustomerID), // TODO: add StripeCustomerID to user model
 		Metadata: map[string]string{
-			"user_id":    user.ID.String(),
+			"user_id":    user.ID,
 			"user_email": user.Email,
 			"price_id":   priceID,
 		},

@@ -66,7 +66,7 @@ func (r *userRepository) GetOneByID(id string, preloads ...string) (*models.User
 
 func (r *userRepository) Update(user *models.User) error {
 	// Use a transaction to ensure atomicity
-	err := r.db.DB.Transaction(func(tx *gorm.DB) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
 		// First update the user fields
 		result := tx.Updates(user)
 		if result.Error != nil {
@@ -95,19 +95,19 @@ func (r *userRepository) Update(user *models.User) error {
 		return errors.DatabaseError("Failed to update user", err).
 			WithOperation("update_user").
 			WithResource("user").
-			WithContext("user_id", user.ID.String())
+			WithContext("user_id", user.ID)
 	}
 
 	return nil
 }
 
 func (r *userRepository) Delete(user *models.User) error {
-	result := r.db.DB.Delete(user)
+	result := r.db.Delete(user)
 	if result.Error != nil {
 		return errors.DatabaseError("Failed to delete user", result.Error).
 			WithOperation("delete_user").
 			WithResource("user").
-			WithContext("user_id", user.ID.String())
+			WithContext("user_id", user.ID)
 	}
 
 	return nil

@@ -48,7 +48,7 @@ type UpdateUserRequest struct {
 
 func NewUserResponse(user *models.User) *UserResponse {
 	result := &UserResponse{
-		ID:        user.ID.String(),
+		ID:        user.ID,
 		Email:     user.Email,
 		FirstName: user.FirstName,
 		LastName:  user.LastName,

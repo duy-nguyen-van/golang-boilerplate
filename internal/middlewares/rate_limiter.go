@@ -18,7 +18,7 @@ func RateLimit(config config.Config) echo.MiddlewareFunc {
 	store := echoMiddleware.NewRateLimiterMemoryStoreWithConfig(
 		echoMiddleware.RateLimiterMemoryStoreConfig{
 			Rate:      rateLimit,
-			Burst:     int(config.RateLimit),
+			Burst:     config.RateLimit,
 			ExpiresIn: config.RateLimitDuration,
 		},
 	)

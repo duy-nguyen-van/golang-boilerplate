@@ -70,9 +70,8 @@ func (h *HealthHandler) DatabaseHealthCheck(c echo.Context) error {
 
 	if healthStatus.IsHealthy {
 		return h.SuccessResponse(c, "Database is healthy", response, nil)
-	} else {
-		return h.InternalErrorResponse(c, "Database is unhealthy", nil)
 	}
+	return h.InternalErrorResponse(c, "Database is unhealthy", nil)
 }
 
 // DatabaseMetrics godoc

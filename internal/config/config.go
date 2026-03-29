@@ -42,7 +42,7 @@ type Config struct {
 	AppHTTPServer string
 	// AppRequestTimeout is the HTTP server read header timeout in seconds.
 	AppRequestTimeout int
-	AppBaseURL    string
+	AppBaseURL        string
 
 	// Database configuration
 	DatabaseHost        string
@@ -151,10 +151,8 @@ type Config struct {
 
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
-	// Load .env file if it exists
-	if err := godotenv.Load(); err != nil {
-		// .env file is optional, so we don't fail if it doesn't exist
-	}
+	// Load .env file if it exists (optional; ignore errors)
+	_ = godotenv.Load()
 
 	cfg := &Config{
 		AppEnv:                       Environment(getEnv("APP_ENV", "development")),
@@ -301,12 +299,17 @@ func (c *Config) IsDebugMode() bool {
 	return c.DatabaseEnableDebug
 }
 
-// populateFromJSON reads a service account JSON and fills email and private key
+// PopulateFromJSON reads a service account JSON and fills email and private key
 func (c *Config) PopulateFromJSON(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
+	return c.PopulateFromJSONBytes(data)
+}
+
+// PopulateFromJSONBytes parses service account JSON bytes (same validation as PopulateFromJSON).
+func (c *Config) PopulateFromJSONBytes(data []byte) error {
 	var payload struct {
 		ClientEmail string `json:"client_email"`
 		PrivateKey  string `json:"private_key"`

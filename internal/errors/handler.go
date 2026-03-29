@@ -302,7 +302,7 @@ func (h *ErrorHandler) SuccessResponse(c echo.Context, message string, data any,
 func (h *ErrorHandler) ValidationErrorResponse(c echo.Context, message string, validationErrors map[string]string) error {
 	appErr := ValidationError(message, nil)
 	for field, errMsg := range validationErrors {
-		appErr.WithContext("validation_"+field, errMsg)
+		appErr = appErr.WithContext("validation_"+field, errMsg)
 	}
 	return h.errorResponse(c, appErr)
 }

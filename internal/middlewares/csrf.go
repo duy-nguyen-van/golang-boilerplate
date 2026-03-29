@@ -11,6 +11,7 @@ import (
 
 // CSRF returns a configured CSRF middleware.
 func CSRF(cfg *config.Config) echo.MiddlewareFunc {
+	//nolint:gosec // G101: cookie name is not a secret
 	return middleware.CSRFWithConfig(middleware.CSRFConfig{
 		TokenLookup:    "header:X-CSRF-Token",
 		CookieName:     "csrf_token",

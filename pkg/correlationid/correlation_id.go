@@ -24,4 +24,3 @@ func FromContext(ctx context.Context) (string, bool) {
 func NewContext(ctx context.Context, correlationID string) context.Context {
 	return context.WithValue(ctx, correlationIDCtxKey, correlationID)
 }
-

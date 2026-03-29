@@ -63,4 +63,3 @@ func RequestURLFromContext(ctx context.Context) (string, bool) {
 func NewRequestURLContext(ctx context.Context, requestURL string) context.Context {
 	return context.WithValue(ctx, ctxKeyRequestURL, requestURL)
 }
-

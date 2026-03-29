@@ -82,7 +82,7 @@ func RecoveryMiddleware(cfg *config.Config) echo.MiddlewareFunc {
 
 					// Return error response
 					errorHandler := NewErrorHandler()
-					errorHandler.errorResponse(c, panicErr)
+					_ = errorHandler.errorResponse(c, panicErr)
 				}
 			}()
 

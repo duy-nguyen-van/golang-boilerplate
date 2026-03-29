@@ -491,10 +491,7 @@ func (a *KeycloakAuth) AddUserToOrganization(ctx context.Context, adminToken str
 }
 
 func (a *KeycloakAuth) UpdateUser(ctx context.Context, adminToken string, userID string, userDto *dtos.UpdateUserRequest) error {
-	enabled := true
-	if userDto.Status == constants.UserStatusInactive {
-		enabled = false
-	}
+	enabled := userDto.Status != constants.UserStatusInactive
 
 	err := a.client.UpdateUser(ctx, adminToken, a.config.KeycloakRealm, gocloak.User{
 		ID:      &userID,

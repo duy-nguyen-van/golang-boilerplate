@@ -72,7 +72,7 @@ func TestCompanyService_Create(t *testing.T) {
 			setupMocks: func(companyRepo *MockCompanyRepositoryForCompanyService, cache *MockCache) {
 				createdCompany := &models.Company{
 					BaseModel: models.BaseModel{
-						ID: uuid.New(),
+						ID: uuid.New().String(),
 					},
 					Name:       "Acme Corp",
 					KeycloakID: "keycloak-123",
@@ -151,7 +151,7 @@ func TestCompanyService_GetOneByID(t *testing.T) {
 			setupMocks: func(companyRepo *MockCompanyRepositoryForCompanyService, cache *MockCache) {
 				company := &models.Company{
 					BaseModel: models.BaseModel{
-						ID: uuid.New(),
+						ID: uuid.New().String(),
 					},
 					Name:       "Acme Corp",
 					KeycloakID: "keycloak-123",
@@ -193,7 +193,7 @@ func TestCompanyService_GetOneByID(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, result)
-				assert.NotEmpty(t, result.ID.String())
+				assert.NotEmpty(t, result.ID)
 			}
 
 			mockCompanyRepo.AssertExpectations(t)
@@ -222,7 +222,7 @@ func TestCompanyService_Update(t *testing.T) {
 				companyID := uuid.New()
 				company := &models.Company{
 					BaseModel: models.BaseModel{
-						ID: companyID,
+						ID: companyID.String(),
 					},
 					Name:       "Old Name",
 					KeycloakID: "keycloak-123",
@@ -258,7 +258,7 @@ func TestCompanyService_Update(t *testing.T) {
 			setupMocks: func(companyRepo *MockCompanyRepositoryForCompanyService, cache *MockCache) {
 				company := &models.Company{
 					BaseModel: models.BaseModel{
-						ID: uuid.New(),
+						ID: uuid.New().String(),
 					},
 					Name: "Old Name",
 				}
@@ -329,7 +329,7 @@ func TestCompanyService_Delete(t *testing.T) {
 			setupMocks: func(companyRepo *MockCompanyRepositoryForCompanyService, cache *MockCache) {
 				company := &models.Company{
 					BaseModel: models.BaseModel{
-						ID: uuid.New(),
+						ID: uuid.New().String(),
 					},
 					Name: "Acme Corp",
 				}
@@ -353,7 +353,7 @@ func TestCompanyService_Delete(t *testing.T) {
 			setupMocks: func(companyRepo *MockCompanyRepositoryForCompanyService, cache *MockCache) {
 				company := &models.Company{
 					BaseModel: models.BaseModel{
-						ID: uuid.New(),
+						ID: uuid.New().String(),
 					},
 					Name: "Acme Corp",
 				}
@@ -422,11 +422,11 @@ func TestCompanyService_List(t *testing.T) {
 				companies := &dtos.DataResponse[models.Company]{
 					Data: []models.Company{
 						{
-							BaseModel: models.BaseModel{ID: uuid.New()},
+							BaseModel: models.BaseModel{ID: uuid.New().String()},
 							Name:      "Company 1",
 						},
 						{
-							BaseModel: models.BaseModel{ID: uuid.New()},
+							BaseModel: models.BaseModel{ID: uuid.New().String()},
 							Name:      "Company 2",
 						},
 					},

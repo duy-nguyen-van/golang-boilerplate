@@ -132,7 +132,7 @@ func ValidationErrorWithDetails(message string, cause error, fieldErrors map[str
 
 	// Add field-specific errors to context
 	for field, errMsg := range fieldErrors {
-		appErr.WithContext(field, errMsg)
+		appErr = appErr.WithContext(field, errMsg)
 	}
 
 	return appErr

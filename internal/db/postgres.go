@@ -3,7 +3,7 @@ package db
 import (
 	"golang-boilerplate/internal/config"
 
-	_ "github.com/lib/pq"
+	_ "github.com/lib/pq" // PostgreSQL driver for database/sql
 	"gorm.io/gorm"
 )
 

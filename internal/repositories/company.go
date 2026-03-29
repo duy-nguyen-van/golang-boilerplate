@@ -53,24 +53,24 @@ func (r *companyRepository) GetOneByID(id string) (*models.Company, error) {
 }
 
 func (r *companyRepository) Update(company *models.Company) error {
-	result := r.db.DB.Updates(company)
+	result := r.db.Updates(company)
 	if result.Error != nil {
 		return errors.DatabaseError("Failed to update company", result.Error).
 			WithOperation("update_company").
 			WithResource("company").
-			WithContext("company_id", company.ID.String())
+			WithContext("company_id", company.ID)
 	}
 
 	return nil
 }
 
 func (r *companyRepository) Delete(company *models.Company) error {
-	result := r.db.DB.Delete(company)
+	result := r.db.Delete(company)
 	if result.Error != nil {
 		return errors.DatabaseError("Failed to delete company", result.Error).
 			WithOperation("delete_company").
 			WithResource("company").
-			WithContext("company_id", company.ID.String())
+			WithContext("company_id", company.ID)
 	}
 
 	return nil

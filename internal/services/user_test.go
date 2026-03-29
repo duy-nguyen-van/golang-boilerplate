@@ -155,13 +155,13 @@ func TestUserService_Create(t *testing.T) {
 				companyID2 := uuid.New()
 				company1 := &models.Company{
 					BaseModel: models.BaseModel{
-						ID: companyID1,
+						ID: companyID1.String(),
 					},
 					Name: "Company 1",
 				}
 				company2 := &models.Company{
 					BaseModel: models.BaseModel{
-						ID: companyID2,
+						ID: companyID2.String(),
 					},
 					Name: "Company 2",
 				}
@@ -171,7 +171,7 @@ func TestUserService_Create(t *testing.T) {
 
 				createdUser := &models.User{
 					BaseModel: models.BaseModel{
-						ID: uuid.New(),
+						ID: uuid.New().String(),
 					},
 					FirstName:  "John",
 					LastName:   "Doe",
@@ -198,7 +198,7 @@ func TestUserService_Create(t *testing.T) {
 			setupMocks: func(userRepo *MockUserRepository, companyRepo *MockCompanyRepository, cache *MockCache) {
 				createdUser := &models.User{
 					BaseModel: models.BaseModel{
-						ID: uuid.New(),
+						ID: uuid.New().String(),
 					},
 					FirstName:  "Jane",
 					LastName:   "Smith",
@@ -315,7 +315,7 @@ func TestUserService_GetOneByID(t *testing.T) {
 				userID := uuid.New()
 				user := &models.User{
 					BaseModel: models.BaseModel{
-						ID: userID,
+						ID: userID.String(),
 					},
 					FirstName: "John",
 					LastName:  "Doe",
@@ -364,7 +364,7 @@ func TestUserService_GetOneByID(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, result)
-				assert.NotEmpty(t, result.ID.String())
+				assert.NotEmpty(t, result.ID)
 			}
 
 			mockUserRepo.AssertExpectations(t)

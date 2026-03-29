@@ -66,30 +66,28 @@ func (s *SESSender) SendEmail(ctx context.Context, request EmailRequest) (*Email
 	// Build the email content
 	var body *types.Body
 
-	if request.HTMLBody != "" {
+	switch {
+	case request.HTMLBody != "":
 		body = &types.Body{
 			Html: &types.Content{
 				Data:    aws.String(request.HTMLBody),
 				Charset: aws.String("UTF-8"),
 			},
 		}
-
-		// Add text body if provided
 		if request.TextBody != "" {
 			body.Text = &types.Content{
 				Data:    aws.String(request.TextBody),
 				Charset: aws.String("UTF-8"),
 			}
 		}
-	} else if request.TextBody != "" {
-		// Only text body provided
+	case request.TextBody != "":
 		body = &types.Body{
 			Text: &types.Content{
 				Data:    aws.String(request.TextBody),
 				Charset: aws.String("UTF-8"),
 			},
 		}
-	} else {
+	default:
 		return nil, errors.ExternalServiceError("either HTML or text content must be provided", nil).
 			WithOperation("send_email").
 			WithResource("ses")

@@ -61,6 +61,7 @@ func ProvideRestClient(cfg *config.Config) RestClient {
 
 	// TLS options
 	if cfg.HTTPClientTLSInsecureSkipTLS {
+		//nolint:gosec // G402: explicit opt-in via HTTPClientTLSInsecureSkipTLS for dev/test only
 		c = c.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	}
 

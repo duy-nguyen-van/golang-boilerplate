@@ -42,7 +42,7 @@ type UpdateCompanyRequest struct {
 
 func NewCompanyResponse(company *models.Company) *CompanyResponse {
 	return &CompanyResponse{
-		ID:         company.ID.String(),
+		ID:         company.ID,
 		Name:       company.Name,
 		KeycloakID: company.KeycloakID,
 		CreatedAt:  company.CreatedAt,

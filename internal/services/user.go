@@ -174,7 +174,7 @@ func (s *userService) Update(ctx context.Context, userID string, req *dtos.Updat
 		// Get current company IDs
 		currentCompanyIDs := make(map[string]bool)
 		for _, company := range user.Companies {
-			currentCompanyIDs[company.ID.String()] = true
+			currentCompanyIDs[company.ID] = true
 		}
 
 		// Build the final companies list with only the requested companies
@@ -184,7 +184,7 @@ func (s *userService) Update(ctx context.Context, userID string, req *dtos.Updat
 			if currentCompanyIDs[companyID] {
 				// Find the existing company in user.Companies
 				for _, company := range user.Companies {
-					if company.ID.String() == companyID {
+					if company.ID == companyID {
 						finalCompanies = append(finalCompanies, company)
 						break
 					}

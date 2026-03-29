@@ -11,8 +11,9 @@ DB_DEV_URL ?= docker://postgres/18/dev
 
 bootstrap: container-up migrate-up up
 
+.PHONY: lint
 lint:
-	golangci-lint run
+	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.0 run ./... --config .golangci.yml
 
 mocks:
 	mockery --case snake --dir ./repositories --all --output ./mocks/repositories

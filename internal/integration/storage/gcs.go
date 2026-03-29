@@ -32,12 +32,18 @@ func NewGCSAdapter(config *config.Config) (*GCSAdapter, error) {
 
 	// Prefer credentials JSON path when provided
 	if config.GCSCredentialsJSONPath != "" {
-		if err := config.PopulateFromJSON(config.GCSCredentialsJSONPath); err != nil {
+		data, readErr := os.ReadFile(config.GCSCredentialsJSONPath)
+		if readErr != nil {
+			return nil, errors.ExternalServiceError("failed to load GCS credentials", readErr).
+				WithOperation("load_gcs_credentials").
+				WithResource("storage")
+		}
+		if err := config.PopulateFromJSONBytes(data); err != nil {
 			return nil, errors.ExternalServiceError("failed to load GCS credentials", err).
 				WithOperation("load_gcs_credentials").
 				WithResource("storage")
 		}
-		client, err = gcstorage.NewClient(ctx, option.WithCredentialsFile(config.GCSCredentialsJSONPath))
+		client, err = gcstorage.NewClient(ctx, option.WithAuthCredentialsJSON(option.ServiceAccount, data))
 		if err != nil {
 			return nil, errors.ExternalServiceError("failed to create GCS client", err).
 				WithOperation("create_gcs_client").

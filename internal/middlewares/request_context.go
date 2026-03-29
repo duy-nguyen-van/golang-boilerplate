@@ -52,7 +52,6 @@ func RequestContext(serviceName string) echo.MiddlewareFunc {
 			ctx = request.NewRequestTimestampContext(ctx, timestamp)
 			ctx = request.NewRequestURLContext(ctx, requestURL)
 
-			c.Request().WithContext(ctx)
 			c.SetRequest(c.Request().WithContext(ctx))
 
 			c.Response().Header().Set(CorrelationIDHeaderKey, correlationID)
@@ -79,7 +78,7 @@ func formatRandomSuffix(n int64) string {
 	if n < 0 {
 		n = -n
 	}
-	n = n % 1000
+	n %= 1000
 	switch {
 	case n < 10:
 		return "00" + strconv.FormatInt(n, 10)
@@ -89,4 +88,3 @@ func formatRandomSuffix(n int64) string {
 		return strconv.FormatInt(n, 10)
 	}
 }
-
