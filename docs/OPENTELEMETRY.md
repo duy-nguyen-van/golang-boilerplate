@@ -78,7 +78,7 @@ sequenceDiagram
     Main->>Config: Load .env / env vars
     Config-->>Main: *Config (OTEL_* settings)
 
-    Main->>Logger: Init(logLevel, appEnv)
+    Main->>Logger: Init logLevel and appEnv
     Logger-->>Main: stdout zap core ready
 
     Main->>NR: InitNewRelic(cfg)
@@ -92,7 +92,7 @@ sequenceDiagram
     alt OTEL_EXPORTER_OTLP_ENDPOINT is empty
         OTel-->>Main: nil (OTel disabled)
     else OTEL_EXPORTER_OTLP_ENDPOINT is set
-        OTel->>OTel: Create resource (service.name, version, env)
+        OTel->>OTel: Create resource (service.name / version / env)
         OTel->>OTel: Set W3C TraceContext + Baggage propagators
         opt OTEL_TRACES_ENABLED
             OTel->>OTel: TracerProvider + OTLP trace exporter
@@ -113,7 +113,7 @@ sequenceDiagram
 
     Main->>Logger: Tee Sentry core (error+ only)
 
-    Main->>FX: Supply cfg, nrApp; Provide handlers, db, cache...
+    Main->>FX: Supply cfg and nrApp; Provide handlers db cache
     FX-->>Main: HTTP server running
 ```
 
@@ -181,7 +181,7 @@ sequenceDiagram
     participant Collector as OTel Collector
     participant Sentry as Sentry core
 
-    Code->>Zap: logger.Sugar.Errorw("msg", "error", err)
+    Code->>Zap: logger.Sugar.Errorw with msg and error
 
     par Tee to multiple cores
         Zap->>Stdout: Write entry (always)
@@ -192,7 +192,7 @@ sequenceDiagram
         opt context.Context field present
             OTelCore->>OTelCore: Attach trace_id / span_id
         end
-        OTelCore->>LP: logger.Emit(ctx, record)
+        OTelCore->>LP: logger.Emit with ctx and record
         LP->>Collector: OTLP gRPC ExportLogs (batch)
     and
         Zap->>Sentry: Write entry (error+ only)
@@ -217,10 +217,10 @@ sequenceDiagram
 
     Note over App: Instrumentation produces telemetry
 
-    App->>TraceExp: Span batches (otelecho, GORM, redisotel, otelhttp)
+    App->>TraceExp: Span batches (otelecho / GORM / redisotel / otelhttp)
     TraceExp->>Collector: gRPC :4317 /v1/traces
 
-    App->>MetricExp: Metric points (redisotel, otelhttp, GORM pool)
+    App->>MetricExp: Metric points (redisotel / otelhttp / GORM pool)
     MetricExp->>Collector: gRPC :4317 /v1/metrics
 
     App->>LogExp: Log records (otelzap bridge)
