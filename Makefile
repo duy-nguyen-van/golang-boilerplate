@@ -31,6 +31,12 @@ container-up:
 container-down:
 	docker compose down
 
+otel-up:
+	docker compose up -d otel-collector jaeger
+
+otel-down:
+	docker compose stop otel-collector jaeger
+
 up:
 	cd cmd/server && go run main.go
 

@@ -1,6 +1,6 @@
 # Golang Boilerplate (Echo + FX)
 
-A production-ready Go web application built on Echo, featuring clean architecture, dependency injection (Uber FX), Keycloak auth integration, Redis caching, PostgreSQL, structured logging, and observability (New Relic + Sentry).
+A production-ready Go web application built on Echo, featuring clean architecture, dependency injection (Uber FX), Keycloak auth integration, Redis caching, PostgreSQL, structured logging, and observability (OpenTelemetry + New Relic + Sentry).
 
 ## Table of Contents
 
@@ -72,7 +72,7 @@ A production-ready Go web application built on Echo, featuring clean architectur
 - **Database**: PostgreSQL with migrations ([Atlas](https://atlasgo.io/))
 - **Email**: AWS SES integration
 - **Logging**: Structured logging with Zap
-- **Observability**: New Relic APM + Sentry error tracking
+- **Observability**: OpenTelemetry (OTLP traces/metrics/logs) + New Relic APM + Sentry error tracking
 - **Docker**: Dockerfile and Compose services for Postgres/Redis
 - **Middleware**: Auth, CORS, logging, rate limiting, error handling
 - **Health Checks**: Built-in health endpoint
@@ -695,6 +695,7 @@ The error handling system includes middleware for:
 
 - **Structured Logging**: All errors are logged with context fields
 - **Sentry Integration**: Errors are automatically reported to Sentry with context
+- **OpenTelemetry Integration**: Traces, metrics, and error logs exported over OTLP — see [OpenTelemetry Guide](docs/OPENTELEMETRY.md)
 - **Stack Traces**: Internal errors include stack traces for debugging
 
 ## Database Connection Management
@@ -779,7 +780,7 @@ Set via `.env` (loaded by viper and godotenv):
 - **Authentication**: `AUTH_PROVIDER`, `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET`, `KEY_CLAIMS`, `KEYCLOAK_REDIRECT_URI`
 - **Email**: `EMAIL_PROVIDER` (ses), `AWS_SES_REGION`, `AWS_SES_ACCESS_KEY`, `AWS_SES_SECRET_KEY`
 - **Rate Limiting**: `DEFAULT_RATE_LIMIT`, `AUTH_RATE_LIMIT`, `PUBLIC_RATE_LIMIT`, `RATE_LIMIT`, `RATE_LIMIT_DURATION`
-- **Observability**: `NEWRELIC_APP_NAME`, `NEWRELIC_LICENSE`, `SENTRY_DSN`
+- **Observability**: `NEWRELIC_APP_NAME`, `NEWRELIC_LICENSE`, `SENTRY_DSN`, `OTEL_*` — see [OpenTelemetry Guide](docs/OPENTELEMETRY.md)
 ### Database Configuration Parameters
 
 | Parameter                     | Default | Description                        |
@@ -814,7 +815,10 @@ docker run -p 3000:3000 --env-file .env golang-boilerplate
 
 - **PostgreSQL**: Database (5432)
 - **Redis**: Cache (6379)
+- **Jaeger**: Trace UI (16686) — local OpenTelemetry trace backend
+- **OTel Collector**: OTLP receiver (4317 gRPC, 4318 HTTP)
   - App service is commented out in `docker-compose.yml`. Run the app locally with `make up` or create your own app service.
+  - Start observability stack only: `make otel-up` — see [OpenTelemetry Guide](docs/OPENTELEMETRY.md)
 
 ## Database Monitoring and Troubleshooting
 

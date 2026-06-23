@@ -115,6 +115,15 @@ type Config struct {
 	// Sentry configuration
 	SentryDSN string
 
+	// OpenTelemetry configuration
+	OTelServiceName      string
+	OTelExporterEndpoint string
+	OTelExporterProtocol string
+	OTelExporterInsecure bool
+	OTelTracesEnabled    bool
+	OTelMetricsEnabled   bool
+	OTelLogsEnabled      bool
+
 	// Basic Auth configuration
 	BasicAuthUsername string
 	BasicAuthPassword string
@@ -213,6 +222,13 @@ func Load() (*Config, error) {
 		NewRelicAppName:              getEnv("NEWRELIC_APP_NAME", "golang-boilerplate"),
 		NewRelicLicense:              getEnv("NEWRELIC_LICENSE", ""),
 		SentryDSN:                    getEnv("SENTRY_DSN", ""),
+		OTelServiceName:              getEnv("OTEL_SERVICE_NAME", getEnv("APP_NAME", "golang-boilerplate")),
+		OTelExporterEndpoint:         getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", ""),
+		OTelExporterProtocol:         getEnv("OTEL_EXPORTER_OTLP_PROTOCOL", "grpc"),
+		OTelExporterInsecure:         getEnvAsBool("OTEL_EXPORTER_OTLP_INSECURE", false),
+		OTelTracesEnabled:            getEnvAsBool("OTEL_TRACES_ENABLED", true),
+		OTelMetricsEnabled:           getEnvAsBool("OTEL_METRICS_ENABLED", true),
+		OTelLogsEnabled:              getEnvAsBool("OTEL_LOGS_ENABLED", true),
 		BasicAuthUsername:            getEnv("BASIC_AUTH_USER", ""),
 		BasicAuthPassword:            getEnv("BASIC_AUTH_SECRET", ""),
 		HTTPClientTimeout:            getEnvAsDuration("HTTP_CLIENT_TIMEOUT", 30*time.Second),

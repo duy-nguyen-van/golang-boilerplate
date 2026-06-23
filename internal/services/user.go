@@ -2,18 +2,23 @@ package services
 
 import (
 	"context"
+	"time"
 
 	"golang-boilerplate/internal/cache"
 	"golang-boilerplate/internal/dtos"
 	"golang-boilerplate/internal/errors"
 	"golang-boilerplate/internal/models"
+	"golang-boilerplate/internal/monitoring"
 	"golang-boilerplate/internal/repositories"
 
 	"golang-boilerplate/internal/logger"
 
 	"github.com/getsentry/sentry-go"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
+
+const userTracer = "golang-boilerplate/services/user"
 
 type UserService interface {
 	Create(ctx context.Context, req *dtos.CreateUserRequest) (*models.User, error)
@@ -44,6 +49,14 @@ func ProvideUserService(
 }
 
 func (s *userService) Create(ctx context.Context, req *dtos.CreateUserRequest) (*models.User, error) {
+	ctx, span := monitoring.StartSpan(ctx, userTracer, "UserService.Create",
+		attribute.String("user.first_name", req.FirstName),
+		attribute.String("user.last_name", req.LastName),
+		attribute.String("user.email", req.Email),
+		attribute.String("user.keycloak_id", req.KeycloakID),
+	)
+	defer func() { monitoring.EndSpan(span, nil) }()
+
 	companies := []models.Company{}
 	for _, companyReq := range req.Companies {
 		companyID := companyReq.ID
@@ -107,6 +120,11 @@ func (s *userService) Create(ctx context.Context, req *dtos.CreateUserRequest) (
 }
 
 func (s *userService) GetOneByID(ctx context.Context, userID string) (*models.User, error) {
+	ctx, span := monitoring.StartSpan(ctx, userTracer, "UserService.GetOneByID",
+		attribute.String("user.id", userID),
+	)
+	defer func() { monitoring.EndSpan(span, nil) }()
+
 	user, err := s.userRepo.GetOneByID(userID)
 	if err != nil {
 		// Report to Sentry with context
@@ -134,6 +152,15 @@ func (s *userService) GetOneByID(ctx context.Context, userID string) (*models.Us
 }
 
 func (s *userService) Update(ctx context.Context, userID string, req *dtos.UpdateUserRequest) (*models.User, error) {
+	ctx, span := monitoring.StartSpan(ctx, userTracer, "UserService.Update",
+		attribute.String("user.id", userID),
+		attribute.String("user.first_name", req.FirstName),
+		attribute.String("user.last_name", req.LastName),
+		attribute.String("user.email", req.Email),
+		attribute.String("user.keycloak_id", req.KeycloakID),
+	)
+	defer func() { monitoring.EndSpan(span, nil) }()
+
 	preloads := []string{"Companies"}
 	user, err := s.userRepo.GetOneByID(userID, preloads...)
 	if err != nil {
@@ -266,6 +293,11 @@ func (s *userService) Update(ctx context.Context, userID string, req *dtos.Updat
 }
 
 func (s *userService) Delete(ctx context.Context, userID string) error {
+	ctx, span := monitoring.StartSpan(ctx, userTracer, "UserService.Delete",
+		attribute.String("user.id", userID),
+	)
+	defer func() { monitoring.EndSpan(span, nil) }()
+
 	user, err := s.userRepo.GetOneByID(userID)
 	if err != nil {
 		// Report to Sentry with context
@@ -316,6 +348,16 @@ func (s *userService) Delete(ctx context.Context, userID string) error {
 }
 
 func (s *userService) List(ctx context.Context, pageableRequest *dtos.UserPageableRequest) (*dtos.DataResponse[models.User], error) {
+	ctx, span := monitoring.StartSpan(ctx, userTracer, "UserService.List",
+		attribute.Int("page", pageableRequest.Page),
+		attribute.Int("page_size", pageableRequest.PageSize),
+		attribute.StringSlice("sort", pageableRequest.Sort),
+		attribute.String("q", pageableRequest.Q),
+		attribute.String("start_date", pageableRequest.StartDate.Format(time.RFC3339)),
+		attribute.String("end_date", pageableRequest.EndDate.Format(time.RFC3339)),
+	)
+	defer func() { monitoring.EndSpan(span, nil) }()
+
 	preloads := []string{"Companies"}
 	users, err := s.userRepo.Get(pageableRequest, preloads...)
 	if err != nil {

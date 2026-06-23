@@ -116,6 +116,27 @@ func main() {
 	nrApp := monitoring.InitNewRelic(*cfg)
 	monitoring.InitSentry(*cfg)
 
+	otelProvider, err := monitoring.InitOpenTelemetry(*cfg)
+	if err != nil {
+		logger.Sugar.Fatalf("Failed to initialize OpenTelemetry: %v", err)
+	}
+	defer func() {
+		if otelProvider == nil {
+			return
+		}
+		if err := otelProvider.Shutdown(context.Background()); err != nil {
+			logger.Sugar.Errorf("OpenTelemetry shutdown error: %v", err)
+		}
+	}()
+
+	if cfg.OTelLogsEnabled {
+		monitoring.AttachOTelZapLogger(otelProvider.LoggerProvider(), []zapcore.Level{
+			zapcore.ErrorLevel,
+			zapcore.FatalLevel,
+			zapcore.PanicLevel,
+		})
+	}
+
 	// Add Sentry core to zap logger
 	if logger.Log != nil {
 		logger.Log = logger.Log.WithOptions(zap.WrapCore(func(core zapcore.Core) zapcore.Core {

@@ -2,11 +2,15 @@ package cache
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"golang-boilerplate/internal/config"
-	"golang-boilerplate/internal/errors"
+	apperrors "golang-boilerplate/internal/errors"
+	"golang-boilerplate/internal/logger"
+	"golang-boilerplate/internal/monitoring"
 	"time"
 
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -36,9 +40,22 @@ func NewRedisCache(cfg *config.Config) (*RedisCache, error) {
 	defer cancel()
 
 	if err := client.Ping(ctx).Err(); err != nil {
-		return nil, errors.CacheError("Failed to connect to Redis", err).
+		return nil, apperrors.CacheError("Failed to connect to Redis", err).
 			WithOperation("connect_redis").
 			WithResource("cache")
+	}
+
+	if monitoring.IsOTelEnabled(*cfg) {
+		var instrumentErr error
+		if cfg.OTelTracesEnabled {
+			instrumentErr = errors.Join(instrumentErr, redisotel.InstrumentTracing(client))
+		}
+		if cfg.OTelMetricsEnabled {
+			instrumentErr = errors.Join(instrumentErr, redisotel.InstrumentMetrics(client))
+		}
+		if instrumentErr != nil {
+			logger.Sugar.Warnf("Failed to instrument Redis with OpenTelemetry: %v", instrumentErr)
+		}
 	}
 
 	return &RedisCache{
@@ -51,12 +68,12 @@ func (r *RedisCache) Get(ctx context.Context, key string) (string, error) {
 	result := r.client.Get(ctx, key)
 	if result.Err() != nil {
 		if result.Err() == redis.Nil {
-			return "", errors.NotFoundError("Cache key", fmt.Errorf("key not found")).
+			return "", apperrors.NotFoundError("Cache key", fmt.Errorf("key not found")).
 				WithOperation("get_cache").
 				WithResource("cache").
 				WithContext("key", key)
 		}
-		return "", errors.CacheError("Failed to get from cache", result.Err()).
+		return "", apperrors.CacheError("Failed to get from cache", result.Err()).
 			WithOperation("get_cache").
 			WithResource("cache").
 			WithContext("key", key)
@@ -68,7 +85,7 @@ func (r *RedisCache) Get(ctx context.Context, key string) (string, error) {
 func (r *RedisCache) Set(ctx context.Context, key string, value string, expiration time.Duration) error {
 	err := r.client.Set(ctx, key, value, expiration).Err()
 	if err != nil {
-		return errors.CacheError("Failed to set cache", err).
+		return apperrors.CacheError("Failed to set cache", err).
 			WithOperation("set_cache").
 			WithResource("cache").
 			WithContext("key", key)
@@ -80,7 +97,7 @@ func (r *RedisCache) Set(ctx context.Context, key string, value string, expirati
 func (r *RedisCache) Delete(ctx context.Context, key string) error {
 	err := r.client.Del(ctx, key).Err()
 	if err != nil {
-		return errors.CacheError("Failed to delete from cache", err).
+		return apperrors.CacheError("Failed to delete from cache", err).
 			WithOperation("delete_cache").
 			WithResource("cache").
 			WithContext("key", key)
@@ -92,7 +109,7 @@ func (r *RedisCache) Delete(ctx context.Context, key string) error {
 func (r *RedisCache) Exists(ctx context.Context, key string) (bool, error) {
 	result := r.client.Exists(ctx, key)
 	if result.Err() != nil {
-		return false, errors.CacheError("Failed to check cache existence", result.Err()).
+		return false, apperrors.CacheError("Failed to check cache existence", result.Err()).
 			WithOperation("exists_cache").
 			WithResource("cache").
 			WithContext("key", key)
@@ -104,7 +121,7 @@ func (r *RedisCache) Exists(ctx context.Context, key string) (bool, error) {
 func (r *RedisCache) Close() error {
 	err := r.client.Close()
 	if err != nil {
-		return errors.CacheError("Failed to close Redis connection", err).
+		return apperrors.CacheError("Failed to close Redis connection", err).
 			WithOperation("close_cache").
 			WithResource("cache")
 	}

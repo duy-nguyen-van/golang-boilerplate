@@ -9,12 +9,14 @@ import (
 	"golang-boilerplate/internal/config"
 	"golang-boilerplate/internal/errors"
 	"golang-boilerplate/internal/logger"
+	"golang-boilerplate/internal/monitoring"
 
 	"github.com/getsentry/sentry-go"
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
+	"gorm.io/plugin/opentelemetry/tracing"
 )
 
 // DatabaseManager handles database connections with advanced features
@@ -154,6 +156,18 @@ func (dm *DatabaseManager) connect() error {
 
 	if err := sqlDB.PingContext(ctx); err != nil {
 		return err
+	}
+
+	if monitoring.IsOTelEnabled(*dm.config) {
+		pluginOpts := []tracing.Option{
+			tracing.WithDBSystem("postgresql"),
+		}
+		if !dm.config.OTelMetricsEnabled {
+			pluginOpts = append(pluginOpts, tracing.WithoutMetrics())
+		}
+		if err := db.Use(tracing.NewPlugin(pluginOpts...)); err != nil {
+			logger.Log.Warn("Failed to register GORM OpenTelemetry plugin", zap.Error(err))
+		}
 	}
 
 	dm.db = db

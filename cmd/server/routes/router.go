@@ -16,6 +16,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	echoSwagger "github.com/swaggo/echo-swagger"
+	otelecho "go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 )
 
 func Router(
@@ -27,6 +28,17 @@ func Router(
 	cfg *config.Config,
 ) *echo.Echo {
 	r := echo.New()
+
+	if cfg.OTelExporterEndpoint != "" && cfg.OTelTracesEnabled {
+		serviceName := cfg.OTelServiceName
+		if serviceName == "" {
+			serviceName = cfg.AppName
+		}
+		if serviceName == "" {
+			serviceName = "golang-boilerplate"
+		}
+		r.Use(otelecho.Middleware(serviceName))
+	}
 
 	// Once it's done, you can attach the handler as one of your middleware
 	r.Use(sentryecho.New(sentryecho.Options{

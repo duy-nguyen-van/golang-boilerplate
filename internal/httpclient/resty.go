@@ -5,9 +5,11 @@ import (
 	"net/http"
 
 	"golang-boilerplate/internal/config"
+	"golang-boilerplate/internal/monitoring"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/labstack/echo/v4"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 type RestClient interface {
@@ -63,6 +65,14 @@ func ProvideRestClient(cfg *config.Config) RestClient {
 	if cfg.HTTPClientTLSInsecureSkipTLS {
 		//nolint:gosec // G402: explicit opt-in via HTTPClientTLSInsecureSkipTLS for dev/test only
 		c = c.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	}
+
+	if monitoring.IsOTelEnabled(*cfg) && cfg.OTelTracesEnabled {
+		baseTransport := c.GetClient().Transport
+		if baseTransport == nil {
+			baseTransport = http.DefaultTransport
+		}
+		c = c.SetTransport(otelhttp.NewTransport(baseTransport))
 	}
 
 	return &restClient{client: *c}

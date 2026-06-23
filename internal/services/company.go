@@ -7,13 +7,17 @@ import (
 	"golang-boilerplate/internal/dtos"
 	"golang-boilerplate/internal/errors"
 	"golang-boilerplate/internal/models"
+	"golang-boilerplate/internal/monitoring"
 	"golang-boilerplate/internal/repositories"
 
 	"golang-boilerplate/internal/logger"
 
 	"github.com/getsentry/sentry-go"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
+
+const companyTracer = "golang-boilerplate/services/company"
 
 type CompanyService interface {
 	Create(ctx context.Context, req *dtos.CreateCompanyRequest) (*models.Company, error)
@@ -40,13 +44,18 @@ func ProvideCompanyService(
 	}
 }
 
-func (s *companyService) Create(ctx context.Context, req *dtos.CreateCompanyRequest) (*models.Company, error) {
-	company := &models.Company{
+func (s *companyService) Create(ctx context.Context, req *dtos.CreateCompanyRequest) (company *models.Company, err error) {
+	ctx, span := monitoring.StartSpan(ctx, companyTracer, "CompanyService.Create",
+		attribute.String("company.name", req.Name),
+	)
+	defer func() { monitoring.EndSpan(span, err) }()
+
+	company = &models.Company{
 		Name:       req.Name,
 		KeycloakID: req.KeycloakID,
 	}
 
-	company, err := s.companyRepo.Create(company)
+	company, err = s.companyRepo.Create(company)
 	if err != nil {
 		if hub := sentry.GetHubFromContext(ctx); hub != nil {
 			hub.WithScope(func(scope *sentry.Scope) {
@@ -72,8 +81,13 @@ func (s *companyService) Create(ctx context.Context, req *dtos.CreateCompanyRequ
 	return company, nil
 }
 
-func (s *companyService) GetOneByID(ctx context.Context, companyID string) (*models.Company, error) {
-	company, err := s.companyRepo.GetOneByID(companyID)
+func (s *companyService) GetOneByID(ctx context.Context, companyID string) (company *models.Company, err error) {
+	ctx, span := monitoring.StartSpan(ctx, companyTracer, "CompanyService.GetOneByID",
+		attribute.String("company.id", companyID),
+	)
+	defer func() { monitoring.EndSpan(span, err) }()
+
+	company, err = s.companyRepo.GetOneByID(companyID)
 	if err != nil {
 		if hub := sentry.GetHubFromContext(ctx); hub != nil {
 			hub.WithScope(func(scope *sentry.Scope) {
@@ -99,8 +113,13 @@ func (s *companyService) GetOneByID(ctx context.Context, companyID string) (*mod
 	return company, nil
 }
 
-func (s *companyService) Update(ctx context.Context, companyID string, req *dtos.UpdateCompanyRequest) (*models.Company, error) {
-	company, err := s.companyRepo.GetOneByID(companyID)
+func (s *companyService) Update(ctx context.Context, companyID string, req *dtos.UpdateCompanyRequest) (company *models.Company, err error) {
+	ctx, span := monitoring.StartSpan(ctx, companyTracer, "CompanyService.Update",
+		attribute.String("company.id", companyID),
+	)
+	defer func() { monitoring.EndSpan(span, err) }()
+
+	company, err = s.companyRepo.GetOneByID(companyID)
 	if err != nil {
 		if hub := sentry.GetHubFromContext(ctx); hub != nil {
 			hub.WithScope(func(scope *sentry.Scope) {
@@ -162,7 +181,12 @@ func (s *companyService) Update(ctx context.Context, companyID string, req *dtos
 	return company, nil
 }
 
-func (s *companyService) Delete(ctx context.Context, companyID string) error {
+func (s *companyService) Delete(ctx context.Context, companyID string) (err error) {
+	ctx, span := monitoring.StartSpan(ctx, companyTracer, "CompanyService.Delete",
+		attribute.String("company.id", companyID),
+	)
+	defer func() { monitoring.EndSpan(span, err) }()
+
 	company, err := s.companyRepo.GetOneByID(companyID)
 	if err != nil {
 		if hub := sentry.GetHubFromContext(ctx); hub != nil {
@@ -212,8 +236,14 @@ func (s *companyService) Delete(ctx context.Context, companyID string) error {
 	return nil
 }
 
-func (s *companyService) List(ctx context.Context, pageableRequest *dtos.CompanyPageableRequest) (*dtos.DataResponse[models.Company], error) {
-	companies, err := s.companyRepo.Get(pageableRequest)
+func (s *companyService) List(ctx context.Context, pageableRequest *dtos.CompanyPageableRequest) (companies *dtos.DataResponse[models.Company], err error) {
+	ctx, span := monitoring.StartSpan(ctx, companyTracer, "CompanyService.List",
+		attribute.Int("page", pageableRequest.Page),
+		attribute.Int("page_size", pageableRequest.PageSize),
+	)
+	defer func() { monitoring.EndSpan(span, err) }()
+
+	companies, err = s.companyRepo.Get(pageableRequest)
 	if err != nil {
 		if hub := sentry.GetHubFromContext(ctx); hub != nil {
 			hub.WithScope(func(scope *sentry.Scope) {

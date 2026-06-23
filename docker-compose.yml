@@ -51,23 +51,30 @@ services:
     networks:
       - app-network
 
-  adminer:
-    image: adminer:latest
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.64.0
     restart: unless-stopped
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
     ports:
-      - "8082:8080"
+      - "16686:16686"
     networks:
       - app-network
-    env_file:
-      - cmd/server/.env
-    environment:
-      - ADMINER_DESIGN=pepa-linha
-      - ADMINER_DEFAULT_SERVER=postgres
-      - ADMINER_DEFAULT_DB_NAME=${POSTGRES_DB:-postgres}
-      - ADMINER_DEFAULT_USERNAME=${POSTGRES_USER:-postgres}
-      - ADMINER_DEFAULT_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./deploy/otel/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
     depends_on:
-      - postgres
+      - jaeger
+    networks:
+      - app-network
 
 volumes:
   postgres_data:
