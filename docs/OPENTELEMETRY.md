@@ -113,7 +113,8 @@ sequenceDiagram
 
     Main->>Logger: Tee Sentry core (error+ only)
 
-    Main->>FX: Supply cfg and nrApp; Provide handlers db cache
+    Main->>FX: Supply cfg and nrApp
+    Main->>FX: Provide handlers db cache
     FX-->>Main: HTTP server running
 ```
 
