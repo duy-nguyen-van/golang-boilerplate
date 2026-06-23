@@ -206,7 +206,7 @@ go mod tidy
 ##### 2.1. Configure server environment (app + migrations)
 
 ```bash
-cp examples/env/server.env.example cmd/server/.env
+cp cmd/server/.env.example cmd/server/.env
 ```
 
 Migration Make targets read PostgreSQL settings from `cmd/server/.env` (see `Makefile`: `POSTGRES_*` are composed into `DB_DSN` for Atlas).
@@ -781,6 +781,7 @@ Set via `.env` (loaded by viper and godotenv):
 - **Email**: `EMAIL_PROVIDER` (ses), `AWS_SES_REGION`, `AWS_SES_ACCESS_KEY`, `AWS_SES_SECRET_KEY`
 - **Rate Limiting**: `DEFAULT_RATE_LIMIT`, `AUTH_RATE_LIMIT`, `PUBLIC_RATE_LIMIT`, `RATE_LIMIT`, `RATE_LIMIT_DURATION`
 - **Observability**: `NEWRELIC_APP_NAME`, `NEWRELIC_LICENSE`, `SENTRY_DSN`, `OTEL_*` — see [OpenTelemetry Guide](docs/OPENTELEMETRY.md)
+
 ### Database Configuration Parameters
 
 | Parameter                     | Default | Description                        |
