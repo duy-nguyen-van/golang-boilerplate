@@ -98,9 +98,9 @@ func TestPageableRequest_GetOffset(t *testing.T) {
 
 func TestMeta_HttpCode(t *testing.T) {
 	tests := []struct {
-		name      string
-		meta      Meta
-		expected  int
+		name     string
+		meta     Meta
+		expected int
 	}{
 		{name: "explicit code wins", meta: Meta{Code: http.StatusCreated, ErrorCode: "400000"}, expected: http.StatusCreated},
 		{name: "short error code", meta: Meta{ErrorCode: "40"}, expected: http.StatusInternalServerError},

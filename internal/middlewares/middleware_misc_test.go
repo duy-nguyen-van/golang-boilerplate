@@ -210,10 +210,10 @@ func TestRateLimitVariants(t *testing.T) {
 
 func TestRequestContext(t *testing.T) {
 	tests := []struct {
-		name            string
-		headers         map[string]string
-		wantLang        string
-		wantCorrPrefix  string
+		name             string
+		headers          map[string]string
+		wantLang         string
+		wantCorrPrefix   string
 		wantExistingCorr string
 	}{
 		{

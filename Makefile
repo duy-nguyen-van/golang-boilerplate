@@ -4,7 +4,7 @@ ifneq (,$(wildcard cmd/server/.env))
     export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' cmd/server/.env)
 endif
 
-.PHONY: lint mocks tests test-services test-utils test-handlers test-repositories test-coverage test-coverage-html test-race test-verbose test-specific test-specific-verbose test-specific-coverage docker-build security-fs security-image security
+.PHONY: lint lint-fix mocks tests test-services test-utils test-handlers test-repositories test-coverage test-coverage-html test-race test-verbose test-specific test-specific-verbose test-specific-coverage docker-build security-fs security-image security
 DB_DSN ?= postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=disable$(if $(POSTGRES_SCHEMA),&search_path=$(POSTGRES_SCHEMA))
 MIGRATION_DIR ?= file://cmd/migrations/sql
 DB_DEV_URL ?= docker://postgres/18/dev
@@ -14,6 +14,10 @@ bootstrap: container-up migrate-up up
 .PHONY: lint
 lint:
 	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.0 run ./... --config .golangci.yml
+
+.PHONY: lint-fix
+lint-fix:
+	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.0 run ./... --config .golangci.yml --fix
 
 mocks:
 	mockery --case snake --dir ./repositories --all --output ./mocks/repositories

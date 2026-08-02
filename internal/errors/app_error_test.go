@@ -8,8 +8,8 @@ import (
 
 	"golang-boilerplate/internal/constants"
 
-	"github.com/go-playground/validator/v10"
 	ut "github.com/go-playground/universal-translator"
+	"github.com/go-playground/validator/v10"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -355,15 +355,15 @@ type stubFieldError struct {
 	value             interface{}
 }
 
-func (s stubFieldError) Tag() string                    { return s.tag }
-func (s stubFieldError) ActualTag() string              { return s.tag }
-func (s stubFieldError) Namespace() string              { return s.field }
-func (s stubFieldError) StructNamespace() string        { return s.field }
-func (s stubFieldError) Field() string                  { return s.field }
-func (s stubFieldError) StructField() string            { return s.field }
-func (s stubFieldError) Value() interface{}             { return s.value }
-func (s stubFieldError) Param() string                  { return s.param }
-func (s stubFieldError) Kind() reflect.Kind             { return reflect.String }
-func (s stubFieldError) Type() reflect.Type             { return reflect.TypeOf("") }
+func (s stubFieldError) Tag() string                      { return s.tag }
+func (s stubFieldError) ActualTag() string                { return s.tag }
+func (s stubFieldError) Namespace() string                { return s.field }
+func (s stubFieldError) StructNamespace() string          { return s.field }
+func (s stubFieldError) Field() string                    { return s.field }
+func (s stubFieldError) StructField() string              { return s.field }
+func (s stubFieldError) Value() interface{}               { return s.value }
+func (s stubFieldError) Param() string                    { return s.param }
+func (s stubFieldError) Kind() reflect.Kind               { return reflect.String }
+func (s stubFieldError) Type() reflect.Type               { return reflect.TypeOf("") }
 func (s stubFieldError) Translate(_ ut.Translator) string { return s.Error() }
-func (s stubFieldError) Error() string                  { return s.field + " " + s.tag }
+func (s stubFieldError) Error() string                    { return s.field + " " + s.tag }
