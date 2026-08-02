@@ -1,0 +1,49 @@
+---
+description: Git workflow, conventional commits, branch naming, PR standards
+alwaysApply: true
+---
+
+# Git Conventions
+
+## Conventional Commits
+Format: `<type>(<scope>): <short description>`
+
+Types:
+- `feat` — New feature
+- `fix` — Bug fix
+- `docs` — Documentation only
+- `refactor` — Code restructuring (no behavior change)
+- `test` — Adding/updating tests
+- `chore` — Build, CI, tooling changes
+- `perf` — Performance improvement
+
+Examples:
+- `feat(company): add soft-delete filter`
+- `fix(auth): handle expired JWT gracefully`
+- `refactor(handlers): extract shared validation helper`
+- `chore(otel): tune collector batch size`
+
+Rules:
+- Lowercase description, no period at end
+- Imperative mood: "add" not "added"
+- Keep subject line under 72 characters
+- Body explains WHY, not WHAT
+- Reference issues in body when relevant (`Fixes #123`)
+
+## Branch Naming
+- `feature/<short-description>` — new work
+- `fix/<short-description>` — bug fixes
+- `chore/<short-description>` — tooling/docs
+
+## Pull Requests
+- Title matches conventional commit format
+- Description: what changed, why, how to test
+- Keep PRs focused — one concern per PR
+- Ensure CI passes (`make lint`, `make tests`)
+- Include API/swagger updates when HTTP surface changed
+
+## What NOT to Commit
+- `.env` files, API keys, credentials, private keys
+- Build artifacts, binaries
+- IDE-specific files (unless shared team config)
+- Drift between code and `docs/swagger.*` when handlers changed

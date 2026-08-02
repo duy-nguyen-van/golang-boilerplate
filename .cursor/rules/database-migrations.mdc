@@ -1,0 +1,12 @@
+---
+description: Atlas SQL migrations and hashing for this repo
+globs: "cmd/migrations/**/*.sql"
+alwaysApply: false
+---
+
+# Database migrations
+
+- Migrations live in `cmd/migrations/sql/` and are applied with **Atlas** (`Makefile` targets `migrate-up`, `migrate-down`, `migrate-inspect`, `migrate-status`).
+- New migration files: use the repo’s timestamp naming convention (e.g. `YYYYMMDDHHMMSS_description.sql`) via `make migrate-create name=<name>` or Atlas `migrate new`.
+- After adding or changing migration SQL, refresh checksums with **`make migrate-hash`** (runs `atlas migrate hash`) so `atlas.sum` stays in sync — do not hand-edit `atlas.sum`.
+- Prefer additive, backward-compatible changes when production data exists; document breaking schema steps in the migration comment header if unavoidable.

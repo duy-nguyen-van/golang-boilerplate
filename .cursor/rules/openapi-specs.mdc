@@ -1,0 +1,24 @@
+---
+description: Keep swag-generated OpenAPI specs in sync with HTTP handlers
+alwaysApply: true
+---
+
+# OpenAPI / Swagger specs
+
+This service documents **`/api/v1`** HTTP APIs with **swag**-generated OpenAPI artifacts:
+
+- **`docs/swagger.yaml`** and **`docs/swagger.json`** — reviewable spec
+- **`docs/docs.go`** — generated Go doc package imported by `cmd/server`
+
+## Required whenever you change the HTTP surface
+
+If you add or change **routes, handlers, request/response bodies, status codes, tags, security, or path/query params**, you must:
+
+1. **Maintain swag annotations** on handlers and on `cmd/server/main.go` (`@title`, `@BasePath`, security definitions, etc.) so the spec stays accurate.
+2. **Regenerate** the spec: run **`make swagger-load`** from the repo root (see `Makefile` — `swag init` over `cmd/server`, `internal/handlers`, and the other `-d` paths).
+3. **Commit** the updated `docs/swagger.yaml`, `docs/swagger.json`, and `docs/docs.go` together with the code change — do not leave the repo with drift between behavior and spec.
+
+## Anti-patterns
+
+- ❌ Merging handler or route changes without running **`make swagger-load`** when annotations or shapes changed.
+- ❌ Hand-editing only `swagger.yaml` while ignoring `swag` output — the generated files are the contract this repo uses; fix annotations and regenerate, unless the team explicitly adopts a different single source of truth.

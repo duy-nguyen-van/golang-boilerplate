@@ -1,0 +1,38 @@
+---
+description: When and how to update documentation after code changes
+alwaysApply: false
+---
+
+# Documentation Standards
+
+## When to Update Docs
+- New or changed HTTP endpoint (routes, handlers, DTOs, status codes)
+- Auth / RBAC role or Keycloak behavior changes
+- OpenTelemetry / observability config changes
+- New env vars in `internal/config/`
+- Database schema changes (`cmd/migrations/sql/`)
+
+## What to Document
+
+### OpenAPI (required for `/api/v1` HTTP changes)
+- swag annotations on handlers + `cmd/server/main.go` metadata (`@BasePath /api/v1`)
+- Regenerate: `make swagger-load`
+- Commit `docs/swagger.yaml`, `docs/swagger.json`, and `docs/docs.go` together
+
+### Feature / ops docs (when behavior changes)
+
+| Doc | Update when |
+|-----|-------------|
+| `docs/RBAC_GUIDE.md` / `docs/RBAC_QUICK_START.md` | Roles, permissions, `RequireRole` usage |
+| `docs/KEYCLOAK_RBAC_SETUP.md` | Keycloak realm/client/role mapping |
+| `docs/OPENTELEMETRY.md` | OTel exporter, collector, Jaeger, env vars |
+
+### Human docs
+- `README.md` — setup, `make` targets
+- `CONTRIBUTING.md` — contribution expectations
+- `cmd/server/.env.example` — new required env vars (no secrets)
+
+## Style
+- Concise and practical — include real `make` / `curl` examples with `/api/v1` path prefix
+- Verify paths and commands exist in this repo
+- Outdated docs are worse than no docs

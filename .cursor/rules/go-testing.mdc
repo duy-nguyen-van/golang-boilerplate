@@ -1,0 +1,38 @@
+---
+description: Go test layout, table-driven cases, mocks, and commands for this repo
+globs: "**/*_test.go"
+alwaysApply: false
+---
+
+# Go testing (quality bar)
+
+## Layout and naming
+
+- **Colocate** tests: `internal/<layer>/foo_test.go` next to `foo.go` (same package as source unless you intentionally use an external test package).
+- Test names: `Test<Exported>_Scenario` or `Test<ReceiverMethod>_Condition` so failures read like specs.
+
+## Structure
+
+- Prefer **table-driven** tests with a `name` field and `t.Run(tt.name, func(t *testing.T) { ... })` for multiple cases (see `README.md` → Testing → Test Structure).
+- Assert with **`github.com/stretchr/testify/require`** (or `assert`) consistent with existing tests — fail fast with `require` for preconditions.
+
+## Dependencies and isolation
+
+- **Handlers**: Use `httptest`, `echo.New()`, and small **stub structs** for repos/services instead of real DB or network.
+- **Services**: Inject interfaces or fakes; avoid global singletons in new tests.
+- **Integration** (`//go:build integration`): Keep heavy tests (e.g. testcontainers) behind the tag; do not remove the tag so default `go test ./...` stays fast unless CI explicitly runs `-tags=integration`.
+
+## After changing behavior
+
+- Add or update tests for the code path you touched; cover **success + representative errors** (validation, not found, auth).
+- Run the narrowest command first, then full suite:
+  - Package: `go test -race ./internal/handlers` (or services/repos/utils)
+  - Scoped Make: `make test-handlers` / `make test-services` / `make test-repositories` / `make test-utils`
+  - Full CI-like: **`make tests`** (coverage + race + `count=1` + timeout — see `Makefile`)
+  - Coverage HTML: `make test-coverage-html`
+
+## Anti-patterns
+
+- ❌ `t.Skip` without a short reason, or skipped tests that should block regressions.
+- ❌ Sleeping for async (`time.Sleep`) instead of syncing on channels / `require.Eventually` where needed.
+- ❌ Shared mutable package-level state mutated by parallel tests without protection.

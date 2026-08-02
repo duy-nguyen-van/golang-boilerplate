@@ -1,0 +1,43 @@
+---
+description: Code review checklist — activate when reviewing code or PRs
+alwaysApply: false
+---
+
+# Code Review Guide
+
+## Review Priority (check in order)
+1. **Correctness** — Logic, nil pointers, wrong returns, JWT/role edge cases
+2. **Security** — Auth bypass, token leakage, injection, input validation, CSRF
+3. **Error handling** — `AppError` usage, wrapped errors, no client info leaks
+4. **Concurrency** — Race conditions, goroutine leaks, cache races
+5. **Performance** — N+1 queries, Redis round-trips, missing indexes
+6. **Readability** — Clear naming, layer boundaries respected
+7. **Tests** — Success + error paths; handler stubs; integration tag where needed
+8. **OpenAPI** — swag annotations + `make swagger-load` when `/api/v1` HTTP changed
+
+## Route registration
+- New endpoints go in `cmd/server/routes/router.go` under `/api/v1`
+- Apply `AuthMiddleware` / `RequireRole` with roles from `internal/constants/`
+- CSRF is global via `middlewares.CSRF` — clients need `X-CSRF-Token`
+
+## Go-Specific Checks
+- All errors handled (no `_` for errors)
+- `context.Context` propagated in services/repos
+- Handlers thin; business logic in services
+- Repos don't import handlers or services
+- DTOs don't leak sensitive model fields
+
+## Auth / RBAC Checks
+- JWT validation via Keycloak patterns in `internal/integration/auth/` and `middlewares/auth.go`
+- Role checks match documented RBAC ([docs/RBAC_GUIDE.md](../../docs/RBAC_GUIDE.md))
+- No secrets or tokens logged
+
+## Database Checks
+- Parameterized GORM queries
+- Transactions for multi-step writes
+- Atlas migration additive when possible; `make migrate-hash` after SQL changes
+
+## What NOT to Nitpick
+- Minor style already handled by `gofmt` / `make lint`
+- Naming consistent with surrounding code
+- Comment style (unless misleading)

@@ -1,0 +1,10 @@
+# Local MCP overrides (copy from mcp.json.example)
+mcp.json
+
+# env files
+.env*
+!.env.example
+
+# misc
+.DS_Store
+*.pem
