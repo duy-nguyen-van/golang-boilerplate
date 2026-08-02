@@ -1,0 +1,30 @@
+# Codecov configuration
+# Recipes: https://docs.codecov.com/docs/common-recipe-list
+# Status checks: https://docs.codecov.com/docs/commit-status
+#
+# Require these GitHub checks on PRs (branch protection) to enforce merges:
+#   - codecov/project
+#   - codecov/patch
+
+coverage:
+  status:
+    # Overall project coverage on every PR (blocking)
+    project:
+      default:
+        target: 90%
+        threshold: 0%
+        informational: false
+    # Coverage of lines changed in the PR (blocking)
+    patch:
+      default:
+        target: 90%
+        threshold: 0%
+        informational: false
+
+comment:
+  layout: "diff, flags, files"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+  hide_project_coverage: false

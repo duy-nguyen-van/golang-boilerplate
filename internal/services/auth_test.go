@@ -286,6 +286,11 @@ func TestAuthService_HasAnyRole(t *testing.T) {
 	}
 }
 
+func TestProvideAuthService(t *testing.T) {
+	svc := ProvideAuthService(new(MockAuthProvider))
+	assert.NotNil(t, svc.authProvider)
+}
+
 // Helper functions for creating pointers to basic types
 func boolPtr(b bool) *bool {
 	return &b

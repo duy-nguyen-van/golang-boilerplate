@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -59,7 +60,7 @@ func NewHTTPServer(lc fx.Lifecycle,
 			logger.Sugar.Infof("Starting HTTP server at %s", srv.Addr)
 			go func() {
 				err := srv.Serve(ln)
-				if err != nil {
+				if err != nil && !errors.Is(err, http.ErrServerClosed) {
 					logger.Sugar.Panicf("HTTP server error: %v", err)
 				}
 			}()

@@ -348,13 +348,22 @@ func (s *userService) Delete(ctx context.Context, userID string) error {
 }
 
 func (s *userService) List(ctx context.Context, pageableRequest *dtos.UserPageableRequest) (*dtos.DataResponse[models.User], error) {
+	startDate := ""
+	if pageableRequest.StartDate != nil {
+		startDate = pageableRequest.StartDate.Format(time.RFC3339)
+	}
+	endDate := ""
+	if pageableRequest.EndDate != nil {
+		endDate = pageableRequest.EndDate.Format(time.RFC3339)
+	}
+
 	ctx, span := monitoring.StartSpan(ctx, userTracer, "UserService.List",
 		attribute.Int("page", pageableRequest.Page),
 		attribute.Int("page_size", pageableRequest.PageSize),
 		attribute.StringSlice("sort", pageableRequest.Sort),
 		attribute.String("q", pageableRequest.Q),
-		attribute.String("start_date", pageableRequest.StartDate.Format(time.RFC3339)),
-		attribute.String("end_date", pageableRequest.EndDate.Format(time.RFC3339)),
+		attribute.String("start_date", startDate),
+		attribute.String("end_date", endDate),
 	)
 	defer func() { monitoring.EndSpan(span, nil) }()
 

@@ -479,3 +479,135 @@ func TestCompanyService_List(t *testing.T) {
 		})
 	}
 }
+
+func TestProvideCompanyService(t *testing.T) {
+	svc := ProvideCompanyService(new(MockCompanyRepositoryForCompanyService), new(MockCache))
+	require.NotNil(t, svc)
+	assert.Implements(t, (*CompanyService)(nil), svc)
+}
+
+func TestCompanyService_Create_WithSentryHub(t *testing.T) {
+	mockCompanyRepo := new(MockCompanyRepositoryForCompanyService)
+	mockCache := new(MockCache)
+	mockCompanyRepo.On("Create", mock.AnythingOfType("*models.Company")).Return(nil, assert.AnError)
+
+	service := &companyService{companyRepo: mockCompanyRepo, cache: mockCache}
+	result, err := service.Create(ctxWithSentryHub(), &dtos.CreateCompanyRequest{
+		CompanyRequest: dtos.CompanyRequest{Name: "Acme", KeycloakID: "kc-1"},
+	})
+	require.Error(t, err)
+	assert.Nil(t, result)
+	mockCompanyRepo.AssertExpectations(t)
+}
+
+func TestCompanyService_GetOneByID_WithSentryHub(t *testing.T) {
+	mockCompanyRepo := new(MockCompanyRepositoryForCompanyService)
+	mockCache := new(MockCache)
+	mockCompanyRepo.On("GetOneByID", "missing").Return(nil, assert.AnError)
+
+	service := &companyService{companyRepo: mockCompanyRepo, cache: mockCache}
+	result, err := service.GetOneByID(ctxWithSentryHub(), "missing")
+	require.Error(t, err)
+	assert.Nil(t, result)
+	mockCompanyRepo.AssertExpectations(t)
+}
+
+func TestCompanyService_Update_KeycloakIDAndSentry(t *testing.T) {
+	companyID := uuid.New().String()
+
+	t.Run("success - update keycloak id", func(t *testing.T) {
+		mockCompanyRepo := new(MockCompanyRepositoryForCompanyService)
+		mockCache := new(MockCache)
+		company := &models.Company{
+			BaseModel:  models.BaseModel{ID: companyID},
+			Name:       "Acme",
+			KeycloakID: "old-kc",
+		}
+		mockCompanyRepo.On("GetOneByID", companyID).Return(company, nil)
+		mockCompanyRepo.On("Update", mock.MatchedBy(func(c *models.Company) bool {
+			return c.KeycloakID == "new-kc" && c.Name == "Acme"
+		})).Return(nil)
+
+		service := &companyService{companyRepo: mockCompanyRepo, cache: mockCache}
+		result, err := service.Update(context.Background(), companyID, &dtos.UpdateCompanyRequest{
+			CompanyRequest: dtos.CompanyRequest{KeycloakID: "new-kc"},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, "new-kc", result.KeycloakID)
+		mockCompanyRepo.AssertExpectations(t)
+	})
+
+	t.Run("error - not found with sentry hub", func(t *testing.T) {
+		mockCompanyRepo := new(MockCompanyRepositoryForCompanyService)
+		mockCache := new(MockCache)
+		mockCompanyRepo.On("GetOneByID", "missing").Return(nil, assert.AnError)
+
+		service := &companyService{companyRepo: mockCompanyRepo, cache: mockCache}
+		result, err := service.Update(ctxWithSentryHub(), "missing", &dtos.UpdateCompanyRequest{
+			CompanyRequest: dtos.CompanyRequest{Name: "X"},
+		})
+		require.Error(t, err)
+		assert.Nil(t, result)
+		mockCompanyRepo.AssertExpectations(t)
+	})
+
+	t.Run("error - update db with sentry hub", func(t *testing.T) {
+		mockCompanyRepo := new(MockCompanyRepositoryForCompanyService)
+		mockCache := new(MockCache)
+		company := &models.Company{BaseModel: models.BaseModel{ID: companyID}, Name: "Acme"}
+		mockCompanyRepo.On("GetOneByID", companyID).Return(company, nil)
+		mockCompanyRepo.On("Update", mock.AnythingOfType("*models.Company")).Return(assert.AnError)
+
+		service := &companyService{companyRepo: mockCompanyRepo, cache: mockCache}
+		result, err := service.Update(ctxWithSentryHub(), companyID, &dtos.UpdateCompanyRequest{
+			CompanyRequest: dtos.CompanyRequest{Name: "Updated"},
+		})
+		require.Error(t, err)
+		assert.Nil(t, result)
+		mockCompanyRepo.AssertExpectations(t)
+	})
+}
+
+func TestCompanyService_Delete_WithSentryHub(t *testing.T) {
+	companyID := uuid.New().String()
+
+	t.Run("not found reports to sentry", func(t *testing.T) {
+		mockCompanyRepo := new(MockCompanyRepositoryForCompanyService)
+		mockCache := new(MockCache)
+		mockCompanyRepo.On("GetOneByID", "missing").Return(nil, assert.AnError)
+
+		service := &companyService{companyRepo: mockCompanyRepo, cache: mockCache}
+		err := service.Delete(ctxWithSentryHub(), "missing")
+		require.Error(t, err)
+		mockCompanyRepo.AssertExpectations(t)
+	})
+
+	t.Run("delete db error reports to sentry", func(t *testing.T) {
+		mockCompanyRepo := new(MockCompanyRepositoryForCompanyService)
+		mockCache := new(MockCache)
+		company := &models.Company{BaseModel: models.BaseModel{ID: companyID}, Name: "Acme"}
+		mockCompanyRepo.On("GetOneByID", companyID).Return(company, nil)
+		mockCompanyRepo.On("Delete", company).Return(assert.AnError)
+
+		service := &companyService{companyRepo: mockCompanyRepo, cache: mockCache}
+		err := service.Delete(ctxWithSentryHub(), companyID)
+		require.Error(t, err)
+		mockCompanyRepo.AssertExpectations(t)
+	})
+}
+
+func TestCompanyService_List_WithSentryHub(t *testing.T) {
+	mockCompanyRepo := new(MockCompanyRepositoryForCompanyService)
+	mockCache := new(MockCache)
+	mockCompanyRepo.On("Get", mock.AnythingOfType("*dtos.CompanyPageableRequest"), mock.AnythingOfType("[]string")).
+		Return(nil, assert.AnError)
+
+	service := &companyService{companyRepo: mockCompanyRepo, cache: mockCache}
+	result, err := service.List(ctxWithSentryHub(), &dtos.CompanyPageableRequest{
+		PageableRequest: dtos.PageableRequest{Page: 1, PageSize: 10},
+	})
+	require.Error(t, err)
+	assert.Nil(t, result)
+	mockCompanyRepo.AssertExpectations(t)
+}
