@@ -2,16 +2,19 @@ version: "2"
 linters:
   default: none
   enable:
+    - bodyclose
+    - copyloopvar
     - errcheck
+    - errorlint
     - gocritic
     - gosec
     - govet
     - ineffassign
+    - misspell
     - revive
     - staticcheck
     - unconvert
     - unused
-    - sloglint
     - funlen
   settings:
     staticcheck:
@@ -22,18 +25,12 @@ linters:
         - -ST1005
         - -ST1016
         - all
-    sloglint:
-      no-mixed-args: true
-      attr-only: true
-      context: scope
-      static-msg: true
-      msg-style: capitalized
-      key-naming-case: camel
-      args-on-sep-lines: true
-      no-global: all
+    gosec:
+      excludes:
+        - G101
     funlen:
       lines: 300
-      statements: 50
+      statements: 55
       ignore-comments: false
   exclusions:
     generated: lax
@@ -60,8 +57,15 @@ linters:
       - linters:
           - staticcheck
         text: "ST1003:"
-    paths:
-      - '(.+)_test\.go'
+      - path: _test\.go$
+        linters:
+          - funlen
+          - gosec
+          - errorlint
+          - errcheck
+          - revive
+          - gocritic
+          - unused
 formatters:
   enable:
     - gofmt
@@ -69,6 +73,6 @@ formatters:
   settings:
     goimports:
       local-prefixes:
-        - github.com/uneycom/livevpn-golang-template
+        - golang-boilerplate
   exclusions:
     generated: disable

@@ -3,6 +3,7 @@ package email
 import (
 	"context"
 	"fmt"
+
 	"golang-boilerplate/internal/config"
 	"golang-boilerplate/internal/constants"
 	"golang-boilerplate/internal/errors"

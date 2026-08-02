@@ -1,11 +1,12 @@
 package repositories
 
 import (
+	"strings"
+
 	"golang-boilerplate/internal/db"
 	"golang-boilerplate/internal/dtos"
 	"golang-boilerplate/internal/errors"
 	"golang-boilerplate/internal/models"
-	"strings"
 
 	"gorm.io/gorm"
 )

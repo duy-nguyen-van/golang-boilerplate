@@ -3,10 +3,11 @@ package monitoring
 import (
 	"context"
 	"fmt"
-	"golang-boilerplate/internal/config"
 	"log"
 	"strings"
 	"time"
+
+	"golang-boilerplate/internal/config"
 
 	"github.com/getsentry/sentry-go"
 	"go.uber.org/zap"
@@ -72,13 +73,13 @@ func (c *SentryCore) Write(entry zapcore.Entry, fields []zap.Field) error {
 			// Special handling for error field
 			if field.Key == "error" {
 				if err, ok := field.Interface.(error); ok {
-					scope.SetExtra("error_details", err.Error())
+					SetScopeData(scope, "error_details", err.Error())
 					hub.CaptureException(err)
 					continue
 				}
 			}
 			// Add other fields
-			scope.SetExtra(field.Key, field.Interface)
+			SetScopeData(scope, field.Key, field.Interface)
 		}
 
 		// Add standard fields
@@ -86,13 +87,13 @@ func (c *SentryCore) Write(entry zapcore.Entry, fields []zap.Field) error {
 		scope.SetTag("log_level", entry.Level.String())
 
 		// Add timestamp
-		scope.SetExtra("timestamp", entry.Time.Format(time.RFC3339))
+		SetScopeData(scope, "timestamp", entry.Time.Format(time.RFC3339))
 
 		// Add caller information if available
 		if entry.Caller.Defined {
-			scope.SetExtra("caller_file", entry.Caller.File)
-			scope.SetExtra("caller_line", entry.Caller.Line)
-			scope.SetExtra("caller_function", entry.Caller.Function)
+			SetScopeData(scope, "caller_file", entry.Caller.File)
+			SetScopeData(scope, "caller_line", entry.Caller.Line)
+			SetScopeData(scope, "caller_function", entry.Caller.Function)
 		}
 	})
 
@@ -130,7 +131,6 @@ func InitSentry(cfg config.Config) {
 		Debug:            cfg.AppEnv == config.EnvironmentDevelopment,
 		AttachStacktrace: true,
 		EnableTracing:    true,
-		EnableLogs:       true,
 		TracesSampleRate: 1.0,
 		BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
 			// Filter out sensitive information
@@ -153,6 +153,19 @@ func InitSentry(cfg config.Config) {
 // Flush buffered events before shutdown
 func FlushSentry() {
 	sentry.Flush(2 * time.Second)
+}
+
+// SetScopeData attaches data to a Sentry scope for error events.
+// sentry-go v0.46 removed SetExtra; strings use tags, other values use contexts.
+func SetScopeData(scope *sentry.Scope, key string, value interface{}) {
+	if value == nil {
+		return
+	}
+	if s, ok := value.(string); ok {
+		scope.SetTag(key, s)
+		return
+	}
+	scope.SetContext(key, sentry.Context{"value": value})
 }
 
 // GetSentryHub returns a Sentry hub from the context if available, otherwise falls back to the current hub.

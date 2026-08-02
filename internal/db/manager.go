@@ -93,7 +93,7 @@ func (dm *DatabaseManager) connectWithRetry() error {
 				hub.WithScope(func(scope *sentry.Scope) {
 					scope.SetTag("operation", "database_connection")
 					scope.SetTag("attempt", fmt.Sprintf("%d", attempt))
-					scope.SetExtra("retry_count", attempt)
+					monitoring.SetScopeData(scope, "retry_count", attempt)
 					hub.CaptureException(err)
 				})
 			}

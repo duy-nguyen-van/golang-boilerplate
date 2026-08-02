@@ -11,7 +11,7 @@ import (
 	"golang-boilerplate/internal/utils"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 // CompanyHandler handles company-related HTTP requests
@@ -46,7 +46,7 @@ func ProvideCompanyHandler(
 // @Success 200 {object} object{meta=dtos.Meta,data=dtos.CompanyResponse}
 // @Router /companies [post]
 // @Security BearerAuth
-func (h *CompanyHandler) CreateCompany(c echo.Context) error {
+func (h *CompanyHandler) CreateCompany(c *echo.Context) error {
 	_, ok := c.Get(h.cfg.KeycloakKeyClaim).(*auth.TokenClaims)
 	if !ok {
 		return h.UnauthorizedErrorResponse(c, "User not authenticated")
@@ -84,7 +84,7 @@ func (h *CompanyHandler) CreateCompany(c echo.Context) error {
 // @Success 200 {object} object{meta=dtos.Meta,data=dtos.CompanyResponse}
 // @Router /companies/{id} [get]
 // @Security BearerAuth
-func (h *CompanyHandler) GetOneByID(c echo.Context) error {
+func (h *CompanyHandler) GetOneByID(c *echo.Context) error {
 	_, ok := c.Get(h.cfg.KeycloakKeyClaim).(*auth.TokenClaims)
 	if !ok {
 		return h.UnauthorizedErrorResponse(c, "User not authenticated")
@@ -110,7 +110,7 @@ func (h *CompanyHandler) GetOneByID(c echo.Context) error {
 // @Success 200 {object} object{meta=dtos.Meta,data=dtos.CompanyResponse}
 // @Router /companies/{id} [put]
 // @Security BearerAuth
-func (h *CompanyHandler) UpdateCompany(c echo.Context) error {
+func (h *CompanyHandler) UpdateCompany(c *echo.Context) error {
 	_, ok := c.Get(h.cfg.KeycloakKeyClaim).(*auth.TokenClaims)
 	if !ok {
 		return h.UnauthorizedErrorResponse(c, "User not authenticated")
@@ -148,7 +148,7 @@ func (h *CompanyHandler) UpdateCompany(c echo.Context) error {
 // @Success 200 {object} object{meta=dtos.Meta,data=dtos.CompanyResponse}
 // @Router /companies/{id} [delete]
 // @Security BearerAuth
-func (h *CompanyHandler) DeleteCompany(c echo.Context) error {
+func (h *CompanyHandler) DeleteCompany(c *echo.Context) error {
 	_, ok := c.Get(h.cfg.KeycloakKeyClaim).(*auth.TokenClaims)
 	if !ok {
 		return h.UnauthorizedErrorResponse(c, "User not authenticated")
@@ -178,7 +178,7 @@ func (h *CompanyHandler) DeleteCompany(c echo.Context) error {
 // @Success 200 {object} object{meta=dtos.Meta,data=[]dtos.CompanyResponse}
 // @Router /companies [get]
 // @Security BearerAuth
-func (h *CompanyHandler) GetCompanies(c echo.Context) error {
+func (h *CompanyHandler) GetCompanies(c *echo.Context) error {
 	_, ok := c.Get(h.cfg.KeycloakKeyClaim).(*auth.TokenClaims)
 	if !ok {
 		return h.UnauthorizedErrorResponse(c, "User not authenticated")

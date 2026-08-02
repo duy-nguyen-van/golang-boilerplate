@@ -61,8 +61,8 @@ func (s *companyService) Create(ctx context.Context, req *dtos.CreateCompanyRequ
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("service", "company_service")
 				scope.SetTag("operation", "create_company")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("body_request", req)
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "body_request", req)
 				hub.CaptureException(err)
 			})
 		}
@@ -93,8 +93,8 @@ func (s *companyService) GetOneByID(ctx context.Context, companyID string) (comp
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("service", "company_service")
 				scope.SetTag("operation", "get_company")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("company_id", companyID)
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "company_id", companyID)
 				hub.CaptureException(err)
 			})
 		}
@@ -125,9 +125,9 @@ func (s *companyService) Update(ctx context.Context, companyID string, req *dtos
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("service", "company_service")
 				scope.SetTag("operation", "update_company")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("company_id", companyID)
-				scope.SetExtra("body_request", req)
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "company_id", companyID)
+				monitoring.SetScopeData(scope, "body_request", req)
 				hub.CaptureException(err)
 			})
 		}
@@ -159,9 +159,9 @@ func (s *companyService) Update(ctx context.Context, companyID string, req *dtos
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("service", "company_service")
 				scope.SetTag("operation", "update_company")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("company_id", companyID)
-				scope.SetExtra("body_request", req)
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "company_id", companyID)
+				monitoring.SetScopeData(scope, "body_request", req)
 				hub.CaptureException(err)
 			})
 		}
@@ -193,8 +193,8 @@ func (s *companyService) Delete(ctx context.Context, companyID string) (err erro
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("service", "company_service")
 				scope.SetTag("operation", "delete_company")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("company_id", companyID)
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "company_id", companyID)
 				hub.CaptureException(err)
 			})
 		}
@@ -216,8 +216,8 @@ func (s *companyService) Delete(ctx context.Context, companyID string) (err erro
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("service", "company_service")
 				scope.SetTag("operation", "delete_company")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("company_id", companyID)
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "company_id", companyID)
 				hub.CaptureException(err)
 			})
 		}
@@ -249,8 +249,8 @@ func (s *companyService) List(ctx context.Context, pageableRequest *dtos.Company
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("service", "company_service")
 				scope.SetTag("operation", "get_companies")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("pageable_request", pageableRequest)
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "pageable_request", pageableRequest)
 				hub.CaptureException(err)
 			})
 		}

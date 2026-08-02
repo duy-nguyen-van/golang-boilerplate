@@ -67,7 +67,7 @@ func (s *userService) Create(ctx context.Context, req *dtos.CreateUserRequest) (
 				hub.WithScope(func(scope *sentry.Scope) {
 					scope.SetTag("service", "user_service")
 					scope.SetTag("operation", "create_user")
-					scope.SetExtra("company_id", companyID)
+					monitoring.SetScopeData(scope, "company_id", companyID)
 					hub.CaptureException(err)
 				})
 			}
@@ -100,7 +100,7 @@ func (s *userService) Create(ctx context.Context, req *dtos.CreateUserRequest) (
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("service", "user_service")
 				scope.SetTag("operation", "create_user")
-				scope.SetExtra("body_request", req)
+				monitoring.SetScopeData(scope, "body_request", req)
 				hub.CaptureException(err)
 			})
 		}
@@ -132,7 +132,7 @@ func (s *userService) GetOneByID(ctx context.Context, userID string) (*models.Us
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("service", "user_service")
 				scope.SetTag("operation", "get_user")
-				scope.SetExtra("user_id", userID)
+				monitoring.SetScopeData(scope, "user_id", userID)
 				hub.CaptureException(err)
 			})
 		}
@@ -169,8 +169,8 @@ func (s *userService) Update(ctx context.Context, userID string, req *dtos.Updat
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("service", "user_service")
 				scope.SetTag("operation", "update_user")
-				scope.SetExtra("user_id", userID)
-				scope.SetExtra("body_request", req)
+				monitoring.SetScopeData(scope, "user_id", userID)
+				monitoring.SetScopeData(scope, "body_request", req)
 				hub.CaptureException(err)
 			})
 		}
@@ -225,7 +225,7 @@ func (s *userService) Update(ctx context.Context, userID string, req *dtos.Updat
 						hub.WithScope(func(scope *sentry.Scope) {
 							scope.SetTag("service", "user_service")
 							scope.SetTag("operation", "update_user")
-							scope.SetExtra("company_id", companyID)
+							monitoring.SetScopeData(scope, "company_id", companyID)
 							hub.CaptureException(err)
 						})
 					}
@@ -271,8 +271,8 @@ func (s *userService) Update(ctx context.Context, userID string, req *dtos.Updat
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("service", "user_service")
 				scope.SetTag("operation", "update_user")
-				scope.SetExtra("user_id", userID)
-				scope.SetExtra("body_request", req)
+				monitoring.SetScopeData(scope, "user_id", userID)
+				monitoring.SetScopeData(scope, "body_request", req)
 				hub.CaptureException(err)
 			})
 		}
@@ -305,7 +305,7 @@ func (s *userService) Delete(ctx context.Context, userID string) error {
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("service", "user_service")
 				scope.SetTag("operation", "delete_user")
-				scope.SetExtra("user_id", userID)
+				monitoring.SetScopeData(scope, "user_id", userID)
 				hub.CaptureException(err)
 			})
 		}
@@ -328,7 +328,7 @@ func (s *userService) Delete(ctx context.Context, userID string) error {
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("service", "user_service")
 				scope.SetTag("operation", "delete_user")
-				scope.SetExtra("user_id", userID)
+				monitoring.SetScopeData(scope, "user_id", userID)
 				hub.CaptureException(err)
 			})
 		}
@@ -366,7 +366,7 @@ func (s *userService) List(ctx context.Context, pageableRequest *dtos.UserPageab
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("service", "user_service")
 				scope.SetTag("operation", "get_users")
-				scope.SetExtra("pageable_request", pageableRequest)
+				monitoring.SetScopeData(scope, "pageable_request", pageableRequest)
 				hub.CaptureException(err)
 			})
 		}

@@ -290,7 +290,3 @@ func TestAuthService_HasAnyRole(t *testing.T) {
 func boolPtr(b bool) *bool {
 	return &b
 }
-
-func stringPtr(s string) *string {
-	return &s
-}

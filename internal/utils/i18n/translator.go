@@ -1,13 +1,13 @@
 package i18n
 
 import (
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 )
 
 const LocalizerContext = "localizer"
 
-func T(c echo.Context, messageKey string, param map[string]interface{}) string {
+func T(c *echo.Context, messageKey string, param map[string]interface{}) string {
 	msg := &i18n.Message{
 		ID: messageKey,
 	}

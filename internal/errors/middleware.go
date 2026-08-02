@@ -6,19 +6,20 @@ import (
 	"strings"
 
 	"golang-boilerplate/internal/config"
+	"golang-boilerplate/internal/monitoring"
 	"golang-boilerplate/internal/request"
 
 	"golang-boilerplate/internal/logger"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"go.uber.org/zap"
 )
 
 // RecoveryMiddleware provides panic recovery with proper error handling
 func RecoveryMiddleware(cfg *config.Config) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			defer func() {
 				if r := recover(); r != nil {
 					err, ok := r.(error)
@@ -67,15 +68,15 @@ func RecoveryMiddleware(cfg *config.Config) echo.MiddlewareFunc {
 							scope.SetTag("error_code", panicErr.Code)
 							scope.SetTag("error_type", string(panicErr.Type))
 							scope.SetTag("operation", panicErr.Operation)
-							scope.SetExtra("panic_value", r)
-							scope.SetExtra("stack_trace", panicErr.StackTrace)
-							scope.SetExtra("path", c.Request().URL.Path)
-							scope.SetExtra("method", c.Request().Method)
-							scope.SetExtra("query", c.QueryParams())
-							scope.SetExtra("user_agent", c.Request().UserAgent())
-							scope.SetExtra("ip", c.RealIP())
-							scope.SetExtra("correlation_id", correlationID)
-							scope.SetExtra("language_code", languageCode)
+							monitoring.SetScopeData(scope, "panic_value", r)
+							monitoring.SetScopeData(scope, "stack_trace", panicErr.StackTrace)
+							monitoring.SetScopeData(scope, "path", c.Request().URL.Path)
+							monitoring.SetScopeData(scope, "method", c.Request().Method)
+							monitoring.SetScopeData(scope, "query", c.QueryParams())
+							monitoring.SetScopeData(scope, "user_agent", c.Request().UserAgent())
+							monitoring.SetScopeData(scope, "ip", c.RealIP())
+							monitoring.SetScopeData(scope, "correlation_id", correlationID)
+							monitoring.SetScopeData(scope, "language_code", languageCode)
 							hub.CaptureException(panicErr)
 						})
 					}
@@ -94,7 +95,7 @@ func RecoveryMiddleware(cfg *config.Config) echo.MiddlewareFunc {
 // ErrorMiddleware provides centralized error handling
 func ErrorMiddleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			err := next(c)
 			if err != nil {
 				// Skip error handling for swagger and favicon routes

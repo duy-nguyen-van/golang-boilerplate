@@ -1,8 +1,9 @@
 package dtos
 
 import (
-	"golang-boilerplate/internal/models"
 	"time"
+
+	"golang-boilerplate/internal/models"
 )
 
 // CompanyResponse represents a company response DTO

@@ -13,7 +13,7 @@ import (
 	"golang-boilerplate/internal/utils"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 // UserHandler handles user-related HTTP requests
@@ -51,7 +51,7 @@ func ProvideUserHandler(
 // @Success 200 {object} object{meta=dtos.Meta,data=dtos.UserResponse}
 // @Router /users [post]
 // @Security BearerAuth
-func (h *UserHandler) CreateUser(c echo.Context) error {
+func (h *UserHandler) CreateUser(c *echo.Context) error {
 	_, ok := c.Get(h.cfg.KeycloakKeyClaim).(*auth.TokenClaims)
 	if !ok {
 		return h.UnauthorizedErrorResponse(c, "User not authenticated")
@@ -89,7 +89,7 @@ func (h *UserHandler) CreateUser(c echo.Context) error {
 // @Success 200 {object} object{meta=dtos.Meta,data=dtos.UserResponse}
 // @Router /users/{id} [get]
 // @Security BearerAuth
-func (h *UserHandler) GetOneByID(c echo.Context) error {
+func (h *UserHandler) GetOneByID(c *echo.Context) error {
 	_, ok := c.Get(h.cfg.KeycloakKeyClaim).(*auth.TokenClaims)
 	if !ok {
 		return h.UnauthorizedErrorResponse(c, "User not authenticated")
@@ -115,7 +115,7 @@ func (h *UserHandler) GetOneByID(c echo.Context) error {
 // @Success 200 {object} object{meta=dtos.Meta,data=dtos.UserResponse}
 // @Router /users/{id} [put]
 // @Security BearerAuth
-func (h *UserHandler) UpdateUser(c echo.Context) error {
+func (h *UserHandler) UpdateUser(c *echo.Context) error {
 	_, ok := c.Get(h.cfg.KeycloakKeyClaim).(*auth.TokenClaims)
 	if !ok {
 		return h.UnauthorizedErrorResponse(c, "User not authenticated")
@@ -153,7 +153,7 @@ func (h *UserHandler) UpdateUser(c echo.Context) error {
 // @Success 200 {object} object{meta=dtos.Meta,data=dtos.UserResponse}
 // @Router /users/{id} [delete]
 // @Security BearerAuth
-func (h *UserHandler) DeleteUser(c echo.Context) error {
+func (h *UserHandler) DeleteUser(c *echo.Context) error {
 	_, ok := c.Get(h.cfg.KeycloakKeyClaim).(*auth.TokenClaims)
 	if !ok {
 		return h.UnauthorizedErrorResponse(c, "User not authenticated")
@@ -183,7 +183,7 @@ func (h *UserHandler) DeleteUser(c echo.Context) error {
 // @Success 200 {object} object{meta=dtos.Meta,data=[]dtos.UserResponse}
 // @Router /users [get]
 // @Security BearerAuth
-func (h *UserHandler) GetUsers(c echo.Context) error {
+func (h *UserHandler) GetUsers(c *echo.Context) error {
 	_, ok := c.Get(h.cfg.KeycloakKeyClaim).(*auth.TokenClaims)
 	if !ok {
 		return h.UnauthorizedErrorResponse(c, "User not authenticated")
@@ -257,7 +257,7 @@ func (h *UserHandler) GetUsers(c echo.Context) error {
 // @Success 200 {object} object{meta=dtos.Meta,data=map[string]interface{}}
 // @Router /users/test-rest-client [get]
 // @Security BearerAuth
-func (h *UserHandler) TestRestClient(c echo.Context) error {
+func (h *UserHandler) TestRestClient(c *echo.Context) error {
 	_, ok := c.Get(h.cfg.KeycloakKeyClaim).(*auth.TokenClaims)
 	if !ok {
 		return h.UnauthorizedErrorResponse(c, "User not authenticated")

@@ -2,12 +2,13 @@ package dtos
 
 import (
 	"fmt"
-	"golang-boilerplate/internal/constants"
-	"golang-boilerplate/internal/utils/i18n"
 	"net/http"
 	"strings"
 
-	"github.com/labstack/echo/v4"
+	"golang-boilerplate/internal/constants"
+	"golang-boilerplate/internal/utils/i18n"
+
+	"github.com/labstack/echo/v5"
 )
 
 type BaseResponse[T any] struct {
@@ -15,7 +16,7 @@ type BaseResponse[T any] struct {
 	Data T    `json:"data"`
 }
 
-func (b *BaseResponse[T]) JSON(ctx echo.Context) error {
+func (b *BaseResponse[T]) JSON(ctx *echo.Context) error {
 	return ctx.JSON(b.Meta.HttpCode(), b)
 }
 
@@ -116,7 +117,7 @@ func (m *Meta) HttpCode() int {
 	}
 }
 
-func GetMeta(c echo.Context, code string, httpStatus int) Meta {
+func GetMeta(c *echo.Context, code string, httpStatus int) Meta {
 	return Meta{
 		ErrorCode: code,
 		Message:   i18n.T(c, fmt.Sprintf("Code_%s", code), nil),
@@ -124,7 +125,7 @@ func GetMeta(c echo.Context, code string, httpStatus int) Meta {
 	}
 }
 
-func GetMetaPaging(c echo.Context, code string, pageable *Pageable, httpStatus int) Meta {
+func GetMetaPaging(c *echo.Context, code string, pageable *Pageable, httpStatus int) Meta {
 	return Meta{
 		ErrorCode: code,
 		Message:   i18n.T(c, fmt.Sprintf("Code_%s", code), nil),

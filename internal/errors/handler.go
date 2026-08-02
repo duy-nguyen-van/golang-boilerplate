@@ -2,16 +2,18 @@ package errors
 
 import (
 	"context"
+	stderrors "errors"
 	"fmt"
 	"net/http"
 
 	"golang-boilerplate/internal/constants"
 	"golang-boilerplate/internal/dtos"
+	"golang-boilerplate/internal/monitoring"
 
 	"golang-boilerplate/internal/logger"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -25,7 +27,7 @@ func NewErrorHandler() *ErrorHandler {
 }
 
 // HandleError processes an error and returns appropriate HTTP response
-func (h *ErrorHandler) HandleError(c echo.Context, err error) error {
+func (h *ErrorHandler) HandleError(c *echo.Context, err error) error {
 	appErr := h.processError(err)
 
 	// Log the error with context
@@ -50,9 +52,13 @@ func (h *ErrorHandler) processError(err error) *AppError {
 	}
 
 	// Map Echo HTTP errors (e.g., CSRF 403) to proper AppError
-	if httpErr, ok := err.(*echo.HTTPError); ok {
+	var httpErr *echo.HTTPError
+	if stderrors.As(err, &httpErr) {
 		status := httpErr.Code
-		msg := fmt.Sprintf("%v", httpErr.Message)
+		msg := httpErr.Message
+		if msg == "" {
+			msg = http.StatusText(status)
+		}
 		switch status {
 		case http.StatusBadRequest:
 			return ValidationError(msg, err)
@@ -85,32 +91,32 @@ func (h *ErrorHandler) processError(err error) *AppError {
 
 // handleGORMError converts GORM errors to AppError
 func (h *ErrorHandler) handleGORMError(err error) *AppError {
-	switch err {
-	case gorm.ErrRecordNotFound:
+	switch {
+	case stderrors.Is(err, gorm.ErrRecordNotFound):
 		return NotFoundError("Resource", err)
-	case gorm.ErrInvalidTransaction:
+	case stderrors.Is(err, gorm.ErrInvalidTransaction):
 		return DatabaseError("Invalid database transaction", err)
-	case gorm.ErrNotImplemented:
+	case stderrors.Is(err, gorm.ErrNotImplemented):
 		return DatabaseError("Database operation not implemented", err)
-	case gorm.ErrMissingWhereClause:
+	case stderrors.Is(err, gorm.ErrMissingWhereClause):
 		return DatabaseError("Missing WHERE clause in database operation", err)
-	case gorm.ErrUnsupportedDriver:
+	case stderrors.Is(err, gorm.ErrUnsupportedDriver):
 		return DatabaseError("Unsupported database driver", err)
-	case gorm.ErrRegistered:
+	case stderrors.Is(err, gorm.ErrRegistered):
 		return DatabaseError("Database model already registered", err)
-	case gorm.ErrInvalidField:
+	case stderrors.Is(err, gorm.ErrInvalidField):
 		return DatabaseError("Invalid database field", err)
-	case gorm.ErrEmptySlice:
+	case stderrors.Is(err, gorm.ErrEmptySlice):
 		return DatabaseError("Empty slice provided to database operation", err)
-	case gorm.ErrDryRunModeUnsupported:
+	case stderrors.Is(err, gorm.ErrDryRunModeUnsupported):
 		return DatabaseError("Dry run mode not supported", err)
-	case gorm.ErrInvalidDB:
+	case stderrors.Is(err, gorm.ErrInvalidDB):
 		return DatabaseError("Invalid database connection", err)
-	case gorm.ErrInvalidValue:
+	case stderrors.Is(err, gorm.ErrInvalidValue):
 		return DatabaseError("Invalid value provided to database", err)
-	case gorm.ErrInvalidValueOfLength:
+	case stderrors.Is(err, gorm.ErrInvalidValueOfLength):
 		return DatabaseError("Invalid value length for database field", err)
-	case gorm.ErrPreloadNotAllowed:
+	case stderrors.Is(err, gorm.ErrPreloadNotAllowed):
 		return DatabaseError("Preload not allowed for this operation", err)
 	default:
 		// Check if it's a GORM error by checking the error message
@@ -123,10 +129,10 @@ func (h *ErrorHandler) handleGORMError(err error) *AppError {
 
 // handleContextError converts context errors to AppError
 func (h *ErrorHandler) handleContextError(err error) *AppError {
-	switch err {
-	case context.Canceled:
+	switch {
+	case stderrors.Is(err, context.Canceled):
 		return TimeoutError("Request was canceled", err)
-	case context.DeadlineExceeded:
+	case stderrors.Is(err, context.DeadlineExceeded):
 		return TimeoutError("Request timeout exceeded", err)
 	default:
 		return nil
@@ -183,7 +189,7 @@ func containsSubstring(s, substr string) bool {
 }
 
 // logError logs the error with appropriate level and context
-func (h *ErrorHandler) logError(c echo.Context, appErr *AppError) {
+func (h *ErrorHandler) logError(c *echo.Context, appErr *AppError) {
 	fields := []zap.Field{
 		zap.String("error_code", appErr.Code),
 		zap.String("error_type", string(appErr.Type)),
@@ -226,7 +232,7 @@ func (h *ErrorHandler) logError(c echo.Context, appErr *AppError) {
 }
 
 // reportToSentry reports the error to Sentry
-func (h *ErrorHandler) reportToSentry(c echo.Context, appErr *AppError) {
+func (h *ErrorHandler) reportToSentry(c *echo.Context, appErr *AppError) {
 	if hub := sentry.GetHubFromContext(c.Request().Context()); hub != nil {
 		hub.WithScope(func(scope *sentry.Scope) {
 			// Set error context
@@ -238,22 +244,22 @@ func (h *ErrorHandler) reportToSentry(c echo.Context, appErr *AppError) {
 
 			// Set request context
 			if c != nil {
-				scope.SetExtra("path", c.Request().URL.Path)
-				scope.SetExtra("method", c.Request().Method)
-				scope.SetExtra("query", c.QueryParams())
-				scope.SetExtra("headers", c.Request().Header)
-				scope.SetExtra("user_agent", c.Request().UserAgent())
-				scope.SetExtra("ip", c.RealIP())
+				monitoring.SetScopeData(scope, "path", c.Request().URL.Path)
+				monitoring.SetScopeData(scope, "method", c.Request().Method)
+				monitoring.SetScopeData(scope, "query", c.QueryParams())
+				monitoring.SetScopeData(scope, "headers", c.Request().Header)
+				monitoring.SetScopeData(scope, "user_agent", c.Request().UserAgent())
+				monitoring.SetScopeData(scope, "ip", c.RealIP())
 			}
 
 			// Set error context
 			for k, v := range appErr.Context {
-				scope.SetExtra("error_context_"+k, v)
+				monitoring.SetScopeData(scope, "error_context_"+k, v)
 			}
 
 			// Set stack trace for debugging
 			if appErr.StackTrace != "" {
-				scope.SetExtra("stack_trace", appErr.StackTrace)
+				monitoring.SetScopeData(scope, "stack_trace", appErr.StackTrace)
 			}
 
 			// Capture the error
@@ -263,7 +269,7 @@ func (h *ErrorHandler) reportToSentry(c echo.Context, appErr *AppError) {
 }
 
 // errorResponse creates a structured error response
-func (h *ErrorHandler) errorResponse(c echo.Context, appErr *AppError) error {
+func (h *ErrorHandler) errorResponse(c *echo.Context, appErr *AppError) error {
 	res := &dtos.BaseResponse[any]{}
 	res.Meta = dtos.GetMeta(c, appErr.Code, appErr.HTTPStatus)
 
@@ -285,7 +291,7 @@ func (h *ErrorHandler) errorResponse(c echo.Context, appErr *AppError) error {
 }
 
 // SuccessResponse creates a structured success response
-func (h *ErrorHandler) SuccessResponse(c echo.Context, message string, data any, page *dtos.Pageable) error {
+func (h *ErrorHandler) SuccessResponse(c *echo.Context, message string, data any, page *dtos.Pageable) error {
 	res := &dtos.BaseResponse[any]{}
 	res.Meta = dtos.GetMeta(c, constants.Success, http.StatusOK)
 	res.Meta.Message = message
@@ -299,7 +305,7 @@ func (h *ErrorHandler) SuccessResponse(c echo.Context, message string, data any,
 }
 
 // ValidationErrorResponse creates a validation error response
-func (h *ErrorHandler) ValidationErrorResponse(c echo.Context, message string, validationErrors map[string]string) error {
+func (h *ErrorHandler) ValidationErrorResponse(c *echo.Context, message string, validationErrors map[string]string) error {
 	appErr := ValidationError(message, nil)
 	for field, errMsg := range validationErrors {
 		appErr = appErr.WithContext("validation_"+field, errMsg)
@@ -308,25 +314,25 @@ func (h *ErrorHandler) ValidationErrorResponse(c echo.Context, message string, v
 }
 
 // NotFoundErrorResponse creates a not found error response
-func (h *ErrorHandler) NotFoundErrorResponse(c echo.Context, resource string) error {
+func (h *ErrorHandler) NotFoundErrorResponse(c *echo.Context, resource string) error {
 	appErr := NotFoundError(resource, nil)
 	return h.errorResponse(c, appErr)
 }
 
 // UnauthorizedErrorResponse creates an unauthorized error response
-func (h *ErrorHandler) UnauthorizedErrorResponse(c echo.Context, message string) error {
+func (h *ErrorHandler) UnauthorizedErrorResponse(c *echo.Context, message string) error {
 	appErr := UnauthorizedError(message, nil)
 	return h.errorResponse(c, appErr)
 }
 
 // ForbiddenErrorResponse creates a forbidden error response
-func (h *ErrorHandler) ForbiddenErrorResponse(c echo.Context, message string) error {
+func (h *ErrorHandler) ForbiddenErrorResponse(c *echo.Context, message string) error {
 	appErr := ForbiddenError(message, nil)
 	return h.errorResponse(c, appErr)
 }
 
 // InternalErrorResponse creates an internal error response
-func (h *ErrorHandler) InternalErrorResponse(c echo.Context, message string, cause error) error {
+func (h *ErrorHandler) InternalErrorResponse(c *echo.Context, message string, cause error) error {
 	appErr := InternalError(message, cause)
 	return h.errorResponse(c, appErr)
 }

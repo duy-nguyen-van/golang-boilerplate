@@ -8,7 +8,7 @@ import (
 	"golang-boilerplate/internal/monitoring"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 

@@ -1,12 +1,13 @@
 package handlers
 
 import (
+	"time"
+
 	"golang-boilerplate/internal/config"
 	"golang-boilerplate/internal/db"
 	"golang-boilerplate/internal/dtos"
-	"time"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 // HealthHandler handles health check requests
@@ -33,7 +34,7 @@ func ProvideHealthHandler(cfg *config.Config, db *db.PostgresDB) *HealthHandler 
 // @Produce json
 // @Success 200 {object} object{meta=dtos.Meta,data=dtos.HealthResponse}
 // @Router / [get]
-func (h *HealthHandler) HealthCheck(c echo.Context) error {
+func (h *HealthHandler) HealthCheck(c *echo.Context) error {
 	healthResponse := dtos.HealthResponse{
 		Status:    "healthy",
 		Timestamp: time.Now().UTC(),
@@ -53,7 +54,7 @@ func (h *HealthHandler) HealthCheck(c echo.Context) error {
 // @Produce json
 // @Success 200 {object} object{meta=dtos.Meta,data=object}
 // @Router /health/database [get]
-func (h *HealthHandler) DatabaseHealthCheck(c echo.Context) error {
+func (h *HealthHandler) DatabaseHealthCheck(c *echo.Context) error {
 	if h.db == nil {
 		return h.InternalErrorResponse(c, "Database not initialized", nil)
 	}
@@ -82,7 +83,7 @@ func (h *HealthHandler) DatabaseHealthCheck(c echo.Context) error {
 // @Produce json
 // @Success 200 {object} object{meta=dtos.Meta,data=object}
 // @Router /health/metrics [get]
-func (h *HealthHandler) DatabaseMetrics(c echo.Context) error {
+func (h *HealthHandler) DatabaseMetrics(c *echo.Context) error {
 	if h.db == nil {
 		return h.InternalErrorResponse(c, "Database not initialized", nil)
 	}

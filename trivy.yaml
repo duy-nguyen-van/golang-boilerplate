@@ -1,0 +1,6 @@
+# trivy fs scans the working tree, including gitignored local secrets.
+# These paths are already in .gitignore (not committed / not present in CI).
+scan:
+  skip-files:
+    - cmd/server/.env
+    - cmd/server/*.pem

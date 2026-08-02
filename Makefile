@@ -4,7 +4,7 @@ ifneq (,$(wildcard cmd/server/.env))
     export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' cmd/server/.env)
 endif
 
-.PHONY: lint mocks tests test-services test-utils test-handlers test-repositories test-coverage test-coverage-html test-race test-verbose test-specific test-specific-verbose test-specific-coverage
+.PHONY: lint mocks tests test-services test-utils test-handlers test-repositories test-coverage test-coverage-html test-race test-verbose test-specific test-specific-verbose test-specific-coverage docker-build security-fs security-image security
 DB_DSN ?= postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=disable$(if $(POSTGRES_SCHEMA),&search_path=$(POSTGRES_SCHEMA))
 MIGRATION_DIR ?= file://cmd/migrations/sql
 DB_DEV_URL ?= docker://postgres/18/dev
@@ -24,6 +24,21 @@ build:
 
 dep:
 	@go mod tidy
+
+docker-build:
+	DOCKER_BUILDKIT=1 docker build -f Dockerfile -t golang-boilerplate:latest .
+
+# Match .github/workflows/ci.yml security job (requires: brew install trivy / apt install trivy)
+# Uses repo-root trivy.yaml (skip-files for local gitignored secrets).
+TRIVY_FLAGS = --format table --exit-code 1 --ignore-unfixed --vuln-type os,library --severity CRITICAL,HIGH --config trivy.yaml
+
+security-fs:
+	trivy fs . $(TRIVY_FLAGS) --scanners vuln,secret,misconfig
+
+security-image: docker-build
+	trivy image golang-boilerplate:latest $(TRIVY_FLAGS)
+
+security: security-fs security-image
 
 container-up:
 	set -a && source cmd/server/.env && set +a && docker compose up -d

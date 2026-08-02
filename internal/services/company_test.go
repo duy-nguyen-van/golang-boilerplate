@@ -120,8 +120,7 @@ func TestCompanyService_Create(t *testing.T) {
 				if tt.errorType != "" {
 					appErr, ok := err.(*errors.AppError)
 					require.True(t, ok, "Expected AppError")
-					switch tt.errorType {
-					case "DatabaseError":
+					if tt.errorType == "DatabaseError" {
 						assert.Equal(t, errors.ErrorTypeDatabase, appErr.Type)
 					}
 				}

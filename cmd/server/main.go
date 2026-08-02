@@ -3,6 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/http"
+	"os"
+	"time"
+
 	"golang-boilerplate/docs"
 	"golang-boilerplate/internal/cache"
 	"golang-boilerplate/internal/config"
@@ -16,10 +21,6 @@ import (
 	"golang-boilerplate/internal/monitoring"
 	"golang-boilerplate/internal/repositories"
 	"golang-boilerplate/internal/services"
-	"net"
-	"net/http"
-	"os"
-	"time"
 
 	"golang-boilerplate/cmd/server/routes"
 
@@ -41,7 +42,7 @@ func NewHTTPServer(lc fx.Lifecycle,
 	cfg *config.Config,
 	db *db.PostgresDB,
 ) *http.Server {
-	handler := routes.Router(userHandler, companyHandler, healthHandler, authProvider, nrApp, cfg).Server.Handler
+	handler := routes.Router(userHandler, companyHandler, healthHandler, authProvider, nrApp, cfg)
 
 	srv := &http.Server{
 		Addr:              cfg.AppHTTPServer,

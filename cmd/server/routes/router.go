@@ -1,6 +1,7 @@
 package routes
 
 import (
+	stderrors "errors"
 	"net/http"
 
 	"golang-boilerplate/internal/config"
@@ -9,14 +10,14 @@ import (
 	"golang-boilerplate/internal/handlers"
 	"golang-boilerplate/internal/integration/auth"
 	middlewares "golang-boilerplate/internal/middlewares"
+	"golang-boilerplate/internal/monitoring"
 
 	"github.com/getsentry/sentry-go"
 	sentryecho "github.com/getsentry/sentry-go/echo"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 	"github.com/newrelic/go-agent/v3/newrelic"
-	echoSwagger "github.com/swaggo/echo-swagger"
-	otelecho "go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
+	echoSwagger "github.com/swaggo/echo-swagger/v2"
 )
 
 func Router(
@@ -37,21 +38,21 @@ func Router(
 		if serviceName == "" {
 			serviceName = "golang-boilerplate"
 		}
-		r.Use(otelecho.Middleware(serviceName))
+		r.Use(monitoring.NewOTelEcho(serviceName))
 	}
 
-	// Once it's done, you can attach the handler as one of your middleware
 	r.Use(sentryecho.New(sentryecho.Options{
 		Repanic: true,
 	}))
 
 	// Custom error handler middleware to capture errors and report to Sentry
 	r.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			err := next(c)
 			if err != nil {
 				// Do not report missing routes / bad methods to Sentry (avoids noise when e.g. Swagger UI is not mounted)
-				if he, ok := err.(*echo.HTTPError); ok && (he.Code == http.StatusNotFound || he.Code == http.StatusMethodNotAllowed) {
+				var he *echo.HTTPError
+				if stderrors.As(err, &he) && (he.Code == http.StatusNotFound || he.Code == http.StatusMethodNotAllowed) {
 					return err
 				}
 				// Get the Sentry hub from context
@@ -59,11 +60,11 @@ func Router(
 					// Capture the error with additional context
 					hub.WithScope(func(scope *sentry.Scope) {
 						// Add request context
-						scope.SetExtra("method", c.Request().Method)
-						scope.SetExtra("path", c.Request().URL.Path)
-						scope.SetExtra("query", c.QueryParams())
-						scope.SetExtra("headers", c.Request().Header)
-						scope.SetExtra("body", c.Get("log_body"))
+						monitoring.SetScopeData(scope, "method", c.Request().Method)
+						monitoring.SetScopeData(scope, "path", c.Request().URL.Path)
+						monitoring.SetScopeData(scope, "query", c.QueryParams())
+						monitoring.SetScopeData(scope, "headers", c.Request().Header)
+						monitoring.SetScopeData(scope, "body", c.Get("log_body"))
 
 						// Add environment context
 						scope.SetTag("environment", cfg.AppEnv.String())
@@ -76,9 +77,10 @@ func Router(
 						}
 
 						// Add error type tag
-						if echoErr, ok := err.(*echo.HTTPError); ok {
+						var echoErr *echo.HTTPError
+						if stderrors.As(err, &echoErr) {
 							scope.SetTag("error_type", "http_error")
-							scope.SetExtra("http_code", echoErr.Code)
+							monitoring.SetScopeData(scope, "http_code", echoErr.Code)
 						} else {
 							scope.SetTag("error_type", "internal_error")
 						}

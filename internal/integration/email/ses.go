@@ -2,6 +2,7 @@ package email
 
 import (
 	"context"
+
 	"golang-boilerplate/internal/config"
 	"golang-boilerplate/internal/errors"
 	"golang-boilerplate/internal/monitoring"
@@ -34,9 +35,9 @@ func NewSESSender(config config.Config) (*SESSender, error) {
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("service", "ses")
 				scope.SetTag("operation", "send_email")
-				scope.SetExtra("step", "error")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("config", config)
+				monitoring.SetScopeData(scope, "step", "error")
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "config", config)
 				hub.CaptureException(errors.ExternalServiceError("failed to load AWS config", err))
 			})
 		}
@@ -127,10 +128,10 @@ func (s *SESSender) SendEmail(ctx context.Context, request EmailRequest) (*Email
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("service", "ses")
 				scope.SetTag("operation", "send_email")
-				scope.SetExtra("step", "error")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("recipients", request.To)
-				scope.SetExtra("subject", request.Subject)
+				monitoring.SetScopeData(scope, "step", "error")
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "recipients", request.To)
+				monitoring.SetScopeData(scope, "subject", request.Subject)
 				hub.CaptureException(errors.ExternalServiceError("failed to send email via SES", err))
 			})
 		}
