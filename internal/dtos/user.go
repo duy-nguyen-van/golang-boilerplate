@@ -1,9 +1,10 @@
 package dtos
 
 import (
+	"time"
+
 	"golang-boilerplate/internal/constants"
 	"golang-boilerplate/internal/models"
-	"time"
 )
 
 // UserResponse represents a user response DTO

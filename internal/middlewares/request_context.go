@@ -8,7 +8,7 @@ import (
 
 	"golang-boilerplate/internal/request"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 var (
@@ -25,7 +25,7 @@ var (
 // a small random component when the incoming request does not already provide one.
 func RequestContext(serviceName string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			ctx := c.Request().Context()
 
 			correlationID := c.Request().Header.Get(CorrelationIDHeaderKey)

@@ -1,11 +1,12 @@
 package repositories
 
 import (
+	"strings"
+
 	"golang-boilerplate/internal/db"
 	"golang-boilerplate/internal/dtos"
 	"golang-boilerplate/internal/errors"
 	"golang-boilerplate/internal/models"
-	"strings"
 
 	"gorm.io/gorm"
 )
@@ -67,8 +68,8 @@ func (r *userRepository) GetOneByID(id string, preloads ...string) (*models.User
 func (r *userRepository) Update(user *models.User) error {
 	// Use a transaction to ensure atomicity
 	err := r.db.Transaction(func(tx *gorm.DB) error {
-		// First update the user fields
-		result := tx.Updates(user)
+		// Update scalar fields only; Companies associations are managed below.
+		result := tx.Omit("Companies").Updates(user)
 		if result.Error != nil {
 			return result.Error
 		}

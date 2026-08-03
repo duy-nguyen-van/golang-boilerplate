@@ -1,0 +1,16 @@
+---
+description: Core project facts and invariants for golang-boilerplate (Echo + FX service)
+alwaysApply: true
+---
+
+# golang-boilerplate — core
+
+- **Module path**: `golang-boilerplate` — all internal imports use this prefix.
+- **Stack**: Echo HTTP, Uber FX DI, PostgreSQL, Redis, Keycloak (JWT), **global Zap** logging (`internal/logger/`), OpenTelemetry + Sentry/New Relic where wired.
+- **Routes**: App API under `/api/v1/*` in `cmd/server/routes/router.go`; Swagger at `/swagger/*` (non-prod, basic auth).
+- **Security**: Do not add real credentials, API keys, or production URLs to the repo. Treat `cmd/server/.env` as local-only (gitignored).
+- **Quality bar**: Match [`CONTRIBUTING.md`](../../CONTRIBUTING.md) — `make lint`, `make tests`, `make dep` after dependency edits.
+- **Errors**: Prefer existing `internal/errors` (`AppError`, middleware) and `internal/constants` for codes; avoid ad-hoc `echo.NewHTTPError` unless consistent with surrounding handlers.
+- **Structure**: Respect layer boundaries in `.cursor/rules/go-layering.mdc` (`cmd` = wiring + routes; `internal` = layers below that table).
+- **Workflow**: Plan → implement → test → review — see `.cursor/rules/workflow-implementation.mdc`.
+- **Agents & commands**: Subagents in `.cursor/agents/`; slash commands `gb:*` in `.cursor/commands/`.

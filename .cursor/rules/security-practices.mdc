@@ -1,0 +1,43 @@
+---
+description: Security practices — JWT/Keycloak, validation, secrets, SQL, CSRF, PII
+alwaysApply: true
+---
+
+# Security Practices
+
+## Input Validation
+- Validate ALL external input at handler boundary (`c.Bind`, struct tags, `validator`)
+- Sanitize user input before logging (prevent log injection)
+- Limit request body size and query parameter length (Echo middleware)
+
+## Authentication & Authorization
+- Validate JWT on protected routes via `internal/middlewares/auth.go` (`AuthMiddleware`, `RequireRole`)
+- Keycloak integration lives in `internal/integration/auth/` — follow existing patterns
+- Service layer must NOT read `echo.Context` — pass `context.Context` and typed user/role IDs
+- Role constants live in `internal/constants/` — reuse before adding new roles
+
+## Secrets Management
+- Never hardcode secrets — use `internal/config/` env-backed `Config`
+- Never commit `cmd/server/.env`, credentials, API keys, or private keys
+- Use different secrets per environment (dev/qa/prod)
+
+## SQL Injection Prevention
+- Use GORM/parameterized queries — never concatenate user input into SQL
+- Validate dynamic identifiers if unavoidable
+
+## API Security
+- HTTPS in production; security headers via `internal/middlewares/security.go`
+- CORS: don't use `*` in production — follow `internal/middlewares/cors.go`
+- CSRF (`internal/middlewares/csrf.go`) — token via `X-CSRF-Token` header / `csrf_token` cookie; token also exposed on response via `ExposeCSRFToken`
+- Rate limiting via `internal/middlewares/rate_limiter.go`
+- Log authentication failures with source IP; mask tokens and PII in logs
+
+## Data Protection
+- TLS for all network communication
+- Mask emails, tokens, and identifiers in logs
+- Do not leak sensitive model fields through DTOs
+
+## Error Handling
+- Never expose stack traces or internal errors to clients
+- Use `AppError` / `ErrorHandler` for consistent, safe responses
+- Don't leak DB schema or internal architecture in error messages

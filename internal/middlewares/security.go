@@ -1,8 +1,8 @@
 package middlewares
 
 import (
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 )
 
 // Security returns a middleware that sets common security headers to mitigate XSS and related attacks.

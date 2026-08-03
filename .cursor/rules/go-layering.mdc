@@ -1,0 +1,73 @@
+---
+description: Repo layout, layers, and import boundaries for golang-boilerplate
+globs: "**/*.go"
+alwaysApply: false
+---
+
+# Layout and layers (matches this repo)
+
+## `cmd/` — composition only
+
+- **`cmd/server/main.go`**: Uber **FX** `Provide` / `Invoke`, constructs `http.Server`, supplies `*config.Config`, wires handlers, services, repos, cache, integrations.
+- **`cmd/server/routes/router.go`**: Echo instance, global **middleware** chain, route registration, Swagger (non-prod). No business rules beyond HTTP concerns.
+
+### Route surface
+
+| Surface | Paths | Handlers |
+|---------|-------|----------|
+| **App API (`/api/v1`)** | health, users, companies | `HealthHandler`, `UserHandler`, `CompanyHandler` |
+| **Docs** | `/swagger/*` | Non-prod only, basic auth |
+
+- swag `@BasePath` is `/api/v1`.
+- New routes: register in `router.go` under the correct `v1` group; apply `AuthMiddleware` / `RequireRole` as needed.
+
+## `internal/` — application code
+
+| Layer / area | Path | Role |
+|--------------|------|------|
+| **HTTP handlers** | `internal/handlers/` | Echo: bind/validate request → call service → JSON/`HandleError`. Embed `BaseHandler` for `errors.ErrorHandler` helpers. |
+| **Use cases** | `internal/services/` | Business orchestration; calls **repos**, **cache**, **integration**. |
+| **Persistence** | `internal/repositories/` | GORM/DB access; returns **`internal/models`**. Constructor `Provide*` / `New*` functions in same package. |
+| **DB entities** | `internal/models/` | Tables / associations; no HTTP or Echo types. |
+| **API shapes** | `internal/dtos/` | JSON request/response structs and pagination; used at handler edges. |
+| **Middleware** | `internal/middlewares/` | Auth (JWT/Keycloak), CORS, CSRF, logging, rate limit, security headers, request context. |
+| **Errors** | `internal/errors/` | `AppError`, `ErrorHandler`, recovery/error Echo middleware. |
+| **Constants** | `internal/constants/` | Error codes, roles, pagination, providers. |
+| **Config** | `internal/config/` | Env-backed `Config` struct. |
+| **DB connectivity** | `internal/db/` | Postgres pool / GORM bootstrap (`PostgresDB`, manager). |
+| **Cache** | `internal/cache/` | Redis-backed cache abstraction. |
+| **Outbound integrations** | `internal/integration/` | Auth (Keycloak), email (SES), payment (Stripe), object storage (S3/GCS). |
+| **HTTP client** | `internal/httpclient/` | Shared Resty/outbound HTTP. |
+| **Request scope** | `internal/request/` | Per-request metadata helpers (correlation, etc.). |
+| **Observability** | `internal/logger/`, `internal/monitoring/` | Global **Zap** (`logger.Init` in main); OTel, Sentry, New Relic. |
+| **Pure utilities** | `internal/utils/` | Sort, date, i18n — no DB. |
+
+## `pkg/` — small shared libraries
+
+- **`pkg/correlationid/`** (and similar): import from `internal/` where needed; keep **generic** and free of app-specific DI.
+
+## `docs/` — generated and manual API docs
+
+- **`docs/swagger.yaml`**, **`docs/swagger.json`**, **`docs/docs.go`**: swag output — regenerate with `make swagger-load`, never hand-edit only YAML.
+- **Manual docs**: [docs/RBAC_GUIDE.md](../../docs/RBAC_GUIDE.md), [docs/KEYCLOAK_RBAC_SETUP.md](../../docs/KEYCLOAK_RBAC_SETUP.md), [docs/OPENTELEMETRY.md](../../docs/OPENTELEMETRY.md).
+
+## `deploy/` — ops configs
+
+- **`deploy/otel/`**: OpenTelemetry collector config used by docker-compose.
+
+## Dependency rules
+
+- **handlers → services** is the default path.
+- **services** may use **repositories**, **cache**, **integration**, **db** types — not Echo `Context` for business decisions (pass `context.Context` and typed inputs).
+- **repositories** use **models** + **db**; must **not** import **handlers** or **services**.
+- **models** must **not** import **handlers** or **services**.
+- **DTOs** at handler edges only — do not leak sensitive model fields to API responses.
+
+## Errors and HTTP
+
+- Prefer propagating **`internal/errors.AppError`** (and `ErrorHandler`) over scattered `echo.NewHTTPError`.
+
+```go
+// ❌ Repository or model importing internal/services or internal/handlers
+// ✅ Handler delegates logic to service; service owns transactions and rules
+```

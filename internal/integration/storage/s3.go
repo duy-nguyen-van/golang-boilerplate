@@ -14,15 +14,15 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
-
+	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 type S3Adapter struct {
-	config *config.Config
-	client *s3.Client
-	bucket string
+	config   *config.Config
+	client   *s3.Client
+	transfer *transfermanager.Client
+	bucket   string
 }
 
 // NewS3Adapter creates a new S3 adapter instance implementing storage.StorageAdapter
@@ -47,9 +47,10 @@ func NewS3Adapter(config *config.Config) (*S3Adapter, error) {
 	client := s3.NewFromConfig(cfg)
 
 	return &S3Adapter{
-		config: config,
-		client: client,
-		bucket: config.S3Bucket,
+		config:   config,
+		client:   client,
+		transfer: transfermanager.New(client),
+		bucket:   config.S3Bucket,
 	}, nil
 }
 
@@ -63,10 +64,7 @@ func (a *S3Adapter) UploadFile(ctx context.Context, file *multipart.FileHeader, 
 	}
 	defer f.Close()
 
-	// Use S3 uploader for efficient uploads
-	uploader := manager.NewUploader(a.client)
-
-	_, err = uploader.Upload(ctx, &s3.PutObjectInput{
+	_, err = a.transfer.UploadObject(ctx, &transfermanager.UploadObjectInput{
 		Bucket:      aws.String(a.bucket),
 		Key:         aws.String(key),
 		Body:        f,

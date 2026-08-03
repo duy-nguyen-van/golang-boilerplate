@@ -1,0 +1,52 @@
+---
+description: Systematic debugging for backend (Echo, Postgres, Redis, Keycloak, OTel)
+alwaysApply: false
+---
+
+# Debugging Guide
+
+## Methodology
+1. **Reproduce** — Reliable case (curl or test against `/api/v1/...`)
+2. **Isolate** — Handler vs service vs repo vs cache vs Keycloak/external
+3. **Hypothesize** — 2–3 theories from symptoms
+4. **Verify** — Zap logs (`logger.Sugar`), tests, DB/Redis state, OTel traces
+5. **Fix** — Minimal change at root cause
+6. **Validate** — `make tests`, manual curl if auth-related
+
+## Investigation Tools
+
+### Go
+- `dlv` for breakpoints
+- `go test -race ./internal/...`
+- `go tool pprof` for CPU/memory
+- `make test-specific TEST=TestName` for narrow runs
+
+### Logging
+- Global Zap: `internal/logger/` (`logger.Sugar` after `logger.Init` in main)
+- Request logs: `internal/middlewares/logging.go`
+- Correlation ID: `internal/request/context.go` + `pkg/correlationid/`
+
+### PostgreSQL
+- `make migrate-status` / `make migrate-inspect`
+- `EXPLAIN ANALYZE` for slow queries
+- `pg_stat_activity`, `pg_locks` for locks/deadlocks
+
+### Redis / Cache
+- Cache abstraction in `internal/cache/` — check TTL expiry vs stale reads
+
+### Auth / Keycloak
+- JWT middleware: `internal/middlewares/auth.go`
+- Keycloak client: `internal/integration/auth/`
+- Docs: [docs/KEYCLOAK_RBAC_SETUP.md](../../docs/KEYCLOAK_RBAC_SETUP.md), [docs/RBAC_GUIDE.md](../../docs/RBAC_GUIDE.md)
+
+### Observability
+- OTel traces/metrics: `internal/monitoring/`, collector in `deploy/otel/`
+- Jaeger UI when `make otel-up` / compose is running
+- Docs: [docs/OPENTELEMETRY.md](../../docs/OPENTELEMETRY.md)
+
+## Common Patterns
+- **401/403**: middleware order, JWT expiry, missing/wrong role, CSRF token missing on mutating requests
+- **404**: path under `/api/v1/...` (not root `/users`)
+- **Goroutine leak**: missing context cancellation on outbound HTTP
+- **Migration drift**: `atlas.sum` out of sync — run `make migrate-hash`
+- **No traces**: `OTelExporterEndpoint` empty or collector/Jaeger not up

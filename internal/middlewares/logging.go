@@ -17,8 +17,8 @@ import (
 	"golang-boilerplate/internal/logger"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 	"go.uber.org/zap"
 )
 
@@ -33,7 +33,7 @@ func RequestLogging(cfg *config.Config) echo.MiddlewareFunc {
 		LogUserAgent: true,
 		LogMethod:    true,
 		LogRemoteIP:  true,
-		LogValuesFunc: func(c echo.Context, values middleware.RequestLoggerValues) error {
+		LogValuesFunc: func(c *echo.Context, values middleware.RequestLoggerValues) error {
 			// Create Sentry logger with request context
 			sentryLogger := sentry.NewLogger(c.Request().Context())
 			stdLogger := log.New(sentryLogger, "", log.LstdFlags)
@@ -67,13 +67,13 @@ func RequestLogging(cfg *config.Config) echo.MiddlewareFunc {
 			}
 
 			// Get query parameters
-			query := echo.Map{}
-			_ = (&echo.DefaultBinder{}).BindQueryParams(c, &query)
+			query := map[string]any{}
+			_ = echo.BindQueryParams(c, &query)
 			jsonQueryStr, _ := json.Marshal(query)
 
 			// Get path parameters
-			param := echo.Map{}
-			_ = (&echo.DefaultBinder{}).BindPathParams(c, &param)
+			param := map[string]any{}
+			_ = echo.BindPathValues(c, &param)
 			jsonParamStr, _ := json.Marshal(param)
 
 			// Get request headers (excluding sensitive ones)
@@ -154,7 +154,7 @@ func RequestLogging(cfg *config.Config) echo.MiddlewareFunc {
 }
 
 func LogBodyMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		data, err := io.ReadAll(c.Request().Body)
 		if err != nil {
 			return err

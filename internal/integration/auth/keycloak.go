@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+
 	"golang-boilerplate/internal/config"
 	"golang-boilerplate/internal/constants"
 	"golang-boilerplate/internal/dtos"
@@ -40,9 +41,9 @@ func (a *KeycloakAuth) ClientLogin() (*TokenInfo, error) {
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("adapter", "keycloak")
 				scope.SetTag("operation", "login")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("client_id", a.config.KeycloakClientID)
-				scope.SetExtra("realm", a.config.KeycloakRealm)
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "client_id", a.config.KeycloakClientID)
+				monitoring.SetScopeData(scope, "realm", a.config.KeycloakRealm)
 				hub.CaptureException(err)
 			})
 		}
@@ -67,8 +68,8 @@ func (a *KeycloakAuth) GetUserInfo(token string) (*User, error) {
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("adapter", "keycloak")
 				scope.SetTag("operation", "get_user_info")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("realm", a.config.KeycloakRealm)
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "realm", a.config.KeycloakRealm)
 				hub.CaptureException(err)
 			})
 		}
@@ -98,8 +99,8 @@ func (a *KeycloakAuth) ValidateToken(token string) (*gocloak.IntroSpectTokenResu
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("adapter", "keycloak")
 				scope.SetTag("operation", "validate_token")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("realm", a.config.KeycloakRealm)
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "realm", a.config.KeycloakRealm)
 				hub.CaptureException(err)
 			})
 		}
@@ -121,7 +122,7 @@ func (a *KeycloakAuth) DecodeAccessToken(ctx context.Context, token string, real
 				scope.SetTag("auth_error", "invalid_claims")
 				scope.SetTag("service", "fast-ai")
 				scope.SetTag("environment", a.config.AppEnv.String())
-				scope.SetExtra("error_details", err.Error())
+				monitoring.SetScopeData(scope, "error_details", err.Error())
 				hub.CaptureException(err)
 			})
 		}
@@ -151,8 +152,8 @@ func (a *KeycloakAuth) GetRequestingPartyToken(ctx context.Context, accessToken 
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("adapter", "keycloak")
 				scope.SetTag("operation", "get_rpt")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("realm", a.config.KeycloakRealm)
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "realm", a.config.KeycloakRealm)
 				hub.CaptureException(err)
 			})
 		}
@@ -190,8 +191,8 @@ func (a *KeycloakAuth) CreateUser(ctx context.Context, adminToken string, userDt
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("adapter", "keycloak")
 				scope.SetTag("operation", "create_user")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("realm", a.config.KeycloakRealm)
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "realm", a.config.KeycloakRealm)
 				hub.CaptureException(err)
 			})
 		}
@@ -212,8 +213,8 @@ func (a *KeycloakAuth) getClients(ctx context.Context, adminToken string) ([]*go
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("adapter", "keycloak")
 				scope.SetTag("operation", "get_clients")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("realm", a.config.KeycloakRealm)
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "realm", a.config.KeycloakRealm)
 				hub.CaptureException(err)
 			})
 		}
@@ -236,8 +237,8 @@ func (a *KeycloakAuth) getClientRole(ctx context.Context, adminToken string, cli
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("adapter", "keycloak")
 				scope.SetTag("operation", "get_client_role")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("realm", a.config.KeycloakRealm)
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "realm", a.config.KeycloakRealm)
 				hub.CaptureException(err)
 			})
 		}
@@ -263,10 +264,10 @@ func (a *KeycloakAuth) AddClientRolesToUser(ctx context.Context, adminToken stri
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("adapter", "keycloak")
 				scope.SetTag("operation", "get_clients")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("realm", a.config.KeycloakRealm)
-				scope.SetExtra("client_id", clientID)
-				scope.SetExtra("user_id", userID)
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "realm", a.config.KeycloakRealm)
+				monitoring.SetScopeData(scope, "client_id", clientID)
+				monitoring.SetScopeData(scope, "user_id", userID)
 				hub.CaptureException(err)
 			})
 		}
@@ -288,10 +289,10 @@ func (a *KeycloakAuth) AddClientRolesToUser(ctx context.Context, adminToken stri
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("adapter", "keycloak")
 				scope.SetTag("operation", "get_client")
-				scope.SetExtra("error_details", "Client not found")
-				scope.SetExtra("realm", a.config.KeycloakRealm)
-				scope.SetExtra("client_id", clientID)
-				scope.SetExtra("user_id", userID)
+				monitoring.SetScopeData(scope, "error_details", "Client not found")
+				monitoring.SetScopeData(scope, "realm", a.config.KeycloakRealm)
+				monitoring.SetScopeData(scope, "client_id", clientID)
+				monitoring.SetScopeData(scope, "user_id", userID)
 				hub.CaptureException(errors.NotFoundError("Client not found", nil))
 			})
 		}
@@ -317,11 +318,11 @@ func (a *KeycloakAuth) AddClientRolesToUser(ctx context.Context, adminToken stri
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("adapter", "keycloak")
 				scope.SetTag("operation", "add_client_roles_to_user")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("realm", a.config.KeycloakRealm)
-				scope.SetExtra("user_id", userID)
-				scope.SetExtra("client_id", clientID)
-				scope.SetExtra("role", *kcRole.ID)
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "realm", a.config.KeycloakRealm)
+				monitoring.SetScopeData(scope, "user_id", userID)
+				monitoring.SetScopeData(scope, "client_id", clientID)
+				monitoring.SetScopeData(scope, "role", *kcRole.ID)
 				hub.CaptureException(err)
 			})
 		}
@@ -349,8 +350,8 @@ func (a *KeycloakAuth) SetPassword(ctx context.Context, adminToken string, userI
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("adapter", "keycloak")
 				scope.SetTag("operation", "set_password")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("realm", a.config.KeycloakRealm)
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "realm", a.config.KeycloakRealm)
 				hub.CaptureException(err)
 			})
 		}
@@ -368,8 +369,8 @@ func (a *KeycloakAuth) SendVerificationMail(ctx context.Context, adminToken stri
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("adapter", "keycloak")
 				scope.SetTag("operation", "send_verification_email")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("realm", a.config.KeycloakRealm)
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "realm", a.config.KeycloakRealm)
 				hub.CaptureException(err)
 			})
 		}
@@ -462,9 +463,9 @@ func (a *KeycloakAuth) AddUserToOrganization(ctx context.Context, adminToken str
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("service", "keycloak_adapter")
 				scope.SetTag("operation", "add_user_to_organization")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("user_id", userID)
-				scope.SetExtra("organization_id", organizationID)
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "user_id", userID)
+				monitoring.SetScopeData(scope, "organization_id", organizationID)
 				hub.CaptureException(err)
 			})
 		}
@@ -503,10 +504,10 @@ func (a *KeycloakAuth) UpdateUser(ctx context.Context, adminToken string, userID
 			hub.WithScope(func(scope *sentry.Scope) {
 				scope.SetTag("adapter", "keycloak")
 				scope.SetTag("operation", "update_user")
-				scope.SetExtra("error_details", err.Error())
-				scope.SetExtra("realm", a.config.KeycloakRealm)
-				scope.SetExtra("user_id", userID)
-				scope.SetExtra("body_request", userDto)
+				monitoring.SetScopeData(scope, "error_details", err.Error())
+				monitoring.SetScopeData(scope, "realm", a.config.KeycloakRealm)
+				monitoring.SetScopeData(scope, "user_id", userID)
+				monitoring.SetScopeData(scope, "body_request", userDto)
 				hub.CaptureException(err)
 			})
 		}

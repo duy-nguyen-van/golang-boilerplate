@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	"golang-boilerplate/internal/config"
 	apperrors "golang-boilerplate/internal/errors"
 	"golang-boilerplate/internal/logger"
 	"golang-boilerplate/internal/monitoring"
-	"time"
 
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
@@ -67,7 +68,7 @@ func NewRedisCache(cfg *config.Config) (*RedisCache, error) {
 func (r *RedisCache) Get(ctx context.Context, key string) (string, error) {
 	result := r.client.Get(ctx, key)
 	if result.Err() != nil {
-		if result.Err() == redis.Nil {
+		if errors.Is(result.Err(), redis.Nil) {
 			return "", apperrors.NotFoundError("Cache key", fmt.Errorf("key not found")).
 				WithOperation("get_cache").
 				WithResource("cache").

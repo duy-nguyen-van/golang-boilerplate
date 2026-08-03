@@ -250,6 +250,11 @@ func TestEmailService_SendNotificationEmail(t *testing.T) {
 	}
 }
 
+func TestProvideEmailService(t *testing.T) {
+	svc := ProvideEmailService(new(MockEmailSender))
+	assert.NotNil(t, svc.emailSender)
+}
+
 // Helper function to check if a string contains a substring
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||

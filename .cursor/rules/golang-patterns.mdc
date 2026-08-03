@@ -1,0 +1,82 @@
+---
+description: Go language patterns and backend conventions (Echo, FX, GORM, AppError)
+globs: "**/*.go"
+alwaysApply: false
+---
+
+# Go Patterns & Conventions
+
+## Project Layout
+- `cmd/server/` — FX wiring (`main.go`), Echo routes (`routes/router.go`)
+- `cmd/migrations/sql/` — Atlas SQL migrations + `atlas.sum`
+- `internal/` — private application code (see `go-layering.mdc`)
+- `pkg/` — small shared libraries (e.g. `pkg/correlationid/`)
+- `docs/` — swag-generated OpenAPI (`swagger.yaml`, `swagger.json`, `docs.go`)
+
+## Layered Flow
+```
+Handler (DTO) → Service → Repository (Model)
+```
+- **Handlers** (`internal/handlers/`): bind/validate Echo request → call service → `BaseHandler.HandleError` / `SuccessResponse`
+- **Services** (`internal/services/`): business rules; use `context.Context`, not `echo.Context`
+- **Repositories** (`internal/repositories/`): GORM access; return `internal/models`
+- **DTOs** (`internal/dtos/`): JSON shapes at handler edges only
+
+## Error Handling
+- Prefer **`internal/errors.AppError`** + `ErrorHandler` over scattered `echo.NewHTTPError`
+- Wrap low-level errors: `fmt.Errorf("operation: %w", err)`
+- Use `errors.Is()` / `errors.As()` for comparison
+- Error codes live in `internal/constants/` — reuse existing codes before adding new ones
+
+## HTTP route surface
+
+Registered in `cmd/server/routes/router.go`:
+
+| Namespace | Paths | Notes |
+|-----------|-------|-------|
+| **App API** | `/api/v1/*` — health, users, companies | swag `@BasePath`; JWT + roles on protected routes |
+| **Docs** | `/swagger/*` | Non-prod only, basic auth |
+
+When adding routes: register under `v1`; apply `AuthMiddleware` and `RequireRole` with constants from `internal/constants/`.
+
+## HTTP Handlers (Echo)
+- Embed `BaseHandler` for shared response helpers
+- Bind with `c.Bind(&req)`; validate with struct tags / `validator`
+- Delegate logic to services; keep handlers thin
+- Wire handlers with **`Provide*`** / **`New*`** FX constructors
+- Add **swag annotations** on handler methods when routes change
+
+## Logging (global Zap)
+- `logger.Init(level, env)` in `main` before FX starts — exposes `logger.Log` and `logger.Sugar`
+- Use `logger.Sugar` / structured `logger.Log` in middleware and startup; **do not** introduce global `slog` or per-handler loggers unless refactoring the whole stack
+- Request fields logged via `internal/middlewares/logging.go`; correlation ID via `internal/request/context.go` + `pkg/correlationid/`
+
+## Observability
+- OpenTelemetry: `internal/monitoring/otel.go`, Echo middleware `otelecho.go`; collector config in `deploy/otel/`
+- Sentry / New Relic hooks in `internal/monitoring/` — follow existing wiring in `router.go` / `main.go`
+
+## Dependency Injection (Uber FX)
+- Wire constructors in `cmd/server/main.go` via `fx.Provide` / `fx.Invoke`
+- Register routes in `cmd/server/routes/router.go` — no business logic there
+- Pass interfaces to handlers/services for testability
+
+## Context
+- `ctx context.Context` first on service/repo functions that do I/O
+- Never store context in structs
+- Propagate context through the call chain; use timeouts for outbound calls
+
+## Concurrency
+- Use `context.Context` for cancellation
+- Prefer `errgroup` for parallel tasks with error propagation
+- Every goroutine must have an exit path
+
+## Testing
+- Colocate: `foo.go` → `foo_test.go` in the same package
+- Table-driven tests with `t.Run(tt.name, ...)`
+- Handlers: `httptest` + `echo.New()` + stub services/repos
+- Integration tests: `//go:build integration` tag (see `go-testing.mdc`)
+- Run: `make tests` (full), or scoped `make test-handlers`, `make test-services`, etc.
+
+## Naming
+- MixedCaps / mixedCaps; acronyms all caps: `HTTPStatus`, `UserID`, `JWTBearer`
+- Constructor: `NewXxx(...deps) *Xxx` or `ProvideXxx` for FX providers

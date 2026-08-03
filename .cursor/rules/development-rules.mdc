@@ -1,0 +1,36 @@
+---
+description: Core development principles and code quality standards for all files
+alwaysApply: true
+---
+
+# Development Rules
+
+## Principles
+- **YAGNI**: Don't implement what you don't need yet
+- **KISS**: Simplest solution that works
+- **DRY**: Extract shared logic, don't copy-paste
+
+## File Standards
+- **Naming**: Lowercase Go files (no underscores except `_test.go`); lowercase folder names
+- **Size**: Split large files into focused modules
+- **Comments**: Only where logic isn't self-evident. No obvious comments
+
+## Code Quality
+- Check errors explicitly — don't use `_` for error returns
+- No hardcoded secrets, API keys, or credentials
+- Validate at system boundaries (handlers, external APIs)
+- Prefer early returns over deep nesting
+- Don't log and return error at the same time
+
+## Implementation Rules
+- Read existing code before modifying — understand patterns first
+- Update existing files; don't create "enhanced" copies
+- After modifying code, run `go build ./...` or targeted `go test` to verify
+- Don't over-engineer: no feature flags or backwards-compat shims for unused code
+- Three similar lines > premature abstraction
+
+## Pre-commit
+- Run `make lint` and `make tests` before push
+- Run `make dep` after dependency edits
+- Run `make swagger-load` when HTTP surface or swag annotations change
+- Never commit `.env`, credentials, or secrets

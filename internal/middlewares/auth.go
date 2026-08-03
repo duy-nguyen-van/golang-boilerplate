@@ -13,14 +13,14 @@ import (
 	"golang-boilerplate/internal/logger"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"go.uber.org/zap"
 )
 
 // AuthMiddleware creates middleware for JWT authentication
 func AuthMiddleware(cfg *config.Config, authService auth.AuthService) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			// Get Authorization header
 			authHeader := c.Request().Header.Get("Authorization")
 			if authHeader == "" {
@@ -68,11 +68,11 @@ func AuthMiddleware(cfg *config.Config, authService auth.AuthService) echo.Middl
 						scope.SetTag("auth_error", "invalid_claims")
 						scope.SetTag("service", "fast-ai")
 						scope.SetTag("environment", cfg.AppEnv.String())
-						scope.SetExtra("path", c.Request().URL.Path)
-						scope.SetExtra("method", c.Request().Method)
-						scope.SetExtra("ip", c.RealIP())
-						scope.SetExtra("user_agent", c.Request().UserAgent())
-						scope.SetExtra("error_details", err.Error())
+						monitoring.SetScopeData(scope, "path", c.Request().URL.Path)
+						monitoring.SetScopeData(scope, "method", c.Request().Method)
+						monitoring.SetScopeData(scope, "ip", c.RealIP())
+						monitoring.SetScopeData(scope, "user_agent", c.Request().UserAgent())
+						monitoring.SetScopeData(scope, "error_details", err.Error())
 						hub.CaptureException(err)
 					})
 				}
@@ -101,7 +101,7 @@ func AuthMiddleware(cfg *config.Config, authService auth.AuthService) echo.Middl
 // It checks both realm-level roles and client-level roles from TokenClaims
 func RequireRole(cfg *config.Config, roles ...string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			claims, ok := c.Get(cfg.KeycloakKeyClaim).(*auth.TokenClaims)
 			if !ok {
 				return c.JSON(http.StatusUnauthorized, map[string]string{
@@ -151,7 +151,7 @@ func extractRolesFromClaims(claims *auth.TokenClaims, clientID string) []string 
 // It exchanges the user's access token for an RPT and checks authorization.permissions.
 func RequirePermission(cfg *config.Config, authService auth.AuthService, resource string, scope string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			// Extract access token
 			authHeader := c.Request().Header.Get("Authorization")
 			if !strings.HasPrefix(authHeader, "Bearer ") {

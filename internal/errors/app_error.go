@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"runtime"
@@ -142,7 +143,7 @@ func ValidationErrorWithDetails(message string, cause error, fieldErrors map[str
 func ParseValidationErrors(err error) map[string]string {
 	fieldErrors := make(map[string]string)
 
-	if validationErrors, ok := err.(validator.ValidationErrors); ok {
+	if validationErrors, ok := errors.AsType[validator.ValidationErrors](err); ok {
 		for _, validationErr := range validationErrors {
 			fieldName := validationErr.Field()
 			fieldTag := validationErr.Tag()
@@ -269,13 +270,13 @@ func getStackTrace() string {
 
 // IsAppError checks if an error is an AppError
 func IsAppError(err error) bool {
-	_, ok := err.(*AppError)
+	_, ok := errors.AsType[*AppError](err)
 	return ok
 }
 
 // GetAppError extracts AppError from an error
 func GetAppError(err error) *AppError {
-	if appErr, ok := err.(*AppError); ok {
+	if appErr, ok := errors.AsType[*AppError](err); ok {
 		return appErr
 	}
 	return nil

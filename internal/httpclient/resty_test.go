@@ -34,11 +34,11 @@ func TestRestClient_Post(t *testing.T) {
 				assert.Equal(t, "Bearer token", r.Header.Get("Authorization"))
 
 				var body map[string]string
-				json.NewDecoder(r.Body).Decode(&body)
+				require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
 				assert.Equal(t, "John", body["name"])
 
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(map[string]string{"id": "123", "name": "John"})
+				require.NoError(t, json.NewEncoder(w).Encode(map[string]string{"id": "123", "name": "John"}))
 			},
 			expectedStatus: http.StatusOK,
 			expectedError:  false,
@@ -52,7 +52,7 @@ func TestRestClient_Post(t *testing.T) {
 				assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 
 				w.WriteHeader(http.StatusCreated)
-				json.NewEncoder(w).Encode(map[string]interface{}{"id": "456"})
+				require.NoError(t, json.NewEncoder(w).Encode(map[string]interface{}{"id": "456"}))
 			},
 			expectedStatus: http.StatusCreated,
 			expectedError:  false,
@@ -63,7 +63,7 @@ func TestRestClient_Post(t *testing.T) {
 			headers: map[string]string{},
 			serverHandler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusBadRequest)
-				json.NewEncoder(w).Encode(map[string]string{"error": "bad request"})
+				require.NoError(t, json.NewEncoder(w).Encode(map[string]string{"error": "bad request"}))
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedError:  false, // resty doesn't return error for HTTP errors
@@ -74,7 +74,7 @@ func TestRestClient_Post(t *testing.T) {
 			headers: map[string]string{},
 			serverHandler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
-				json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+				require.NoError(t, json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"}))
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedError:  false,
@@ -133,11 +133,11 @@ func TestRestClient_Put(t *testing.T) {
 				assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 
 				var body map[string]interface{}
-				json.NewDecoder(r.Body).Decode(&body)
+				require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
 				assert.Equal(t, "Updated", body["title"])
 
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(body)
+				require.NoError(t, json.NewEncoder(w).Encode(body))
 			},
 			expectedStatus: http.StatusOK,
 			expectedError:  false,
@@ -149,7 +149,7 @@ func TestRestClient_Put(t *testing.T) {
 			serverHandler: func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, http.MethodPut, r.Method)
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(map[string]string{"status": "updated"})
+				require.NoError(t, json.NewEncoder(w).Encode(map[string]string{"status": "updated"}))
 			},
 			expectedStatus: http.StatusOK,
 			expectedError:  false,
@@ -198,7 +198,6 @@ func TestRestClient_Get(t *testing.T) {
 		serverHandler  http.HandlerFunc
 		expectedStatus int
 		expectedError  bool
-		validateQuery  func(*testing.T, *http.Request)
 	}{
 		{
 			name:        "success - get request",
@@ -210,7 +209,7 @@ func TestRestClient_Get(t *testing.T) {
 				assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(map[string]string{"id": "1", "name": "Test"})
+				require.NoError(t, json.NewEncoder(w).Encode(map[string]string{"id": "1", "name": "Test"}))
 			},
 			expectedStatus: http.StatusOK,
 			expectedError:  false,
@@ -226,9 +225,9 @@ func TestRestClient_Get(t *testing.T) {
 				assert.Equal(t, "active", r.URL.Query().Get("status"))
 
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode([]map[string]interface{}{
+				require.NoError(t, json.NewEncoder(w).Encode([]map[string]interface{}{
 					{"id": "1", "userId": "1"},
-				})
+				}))
 			},
 			expectedStatus: http.StatusOK,
 			expectedError:  false,
@@ -241,7 +240,7 @@ func TestRestClient_Get(t *testing.T) {
 			serverHandler: func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, http.MethodGet, r.Method)
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("plain text response"))
+				_, _ = w.Write([]byte("plain text response"))
 			},
 			expectedStatus: http.StatusOK,
 			expectedError:  false,
@@ -253,7 +252,7 @@ func TestRestClient_Get(t *testing.T) {
 			queryParams: "",
 			serverHandler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusNotFound)
-				json.NewEncoder(w).Encode(map[string]string{"error": "not found"})
+				require.NoError(t, json.NewEncoder(w).Encode(map[string]string{"error": "not found"}))
 			},
 			expectedStatus: http.StatusNotFound,
 			expectedError:  false,
@@ -286,11 +285,6 @@ func TestRestClient_Get(t *testing.T) {
 				require.NotNil(t, response)
 				assert.Equal(t, tt.expectedStatus, response.StatusCode())
 			}
-
-			if tt.validateQuery != nil {
-				// This would require capturing the request, which is complex
-				// For now, we validate in the server handler
-			}
 		})
 	}
 }
@@ -313,11 +307,11 @@ func TestRestClient_Patch(t *testing.T) {
 				assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 
 				var body map[string]interface{}
-				json.NewDecoder(r.Body).Decode(&body)
+				require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
 				assert.Equal(t, "Patched", body["title"])
 
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(body)
+				require.NoError(t, json.NewEncoder(w).Encode(body))
 			},
 			expectedStatus: http.StatusOK,
 			expectedError:  false,
@@ -329,7 +323,7 @@ func TestRestClient_Patch(t *testing.T) {
 			serverHandler: func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, http.MethodPatch, r.Method)
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(map[string]string{"status": "patched"})
+				require.NoError(t, json.NewEncoder(w).Encode(map[string]string{"status": "patched"}))
 			},
 			expectedStatus: http.StatusOK,
 			expectedError:  false,

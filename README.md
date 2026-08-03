@@ -6,6 +6,7 @@ A production-ready Go web application built on Echo, featuring clean architectur
 
 - [Features](#features)
 - [Project Structure](#project-structure)
+- [Agent / Cursor](#agent--cursor)
 - [Quick Start](#quick-start)
   - [Prerequisites](#prerequisites)
   - [Developer tools](#developer-tools)
@@ -162,6 +163,8 @@ golang-boilerplate/
 │     └─ i18n/
 │        └─ translator.go
 │
+├─ .cursor/                    # Cursor rules, agents, commands, skills
+├─ AGENTS.md                   # Agent onboarding (layers, make targets, Cursor index)
 ├─ atlas.hcl                   # Atlas env (GORM schema → migrate diff)
 ├─ Dockerfile
 ├─ docker-compose.yml
@@ -170,6 +173,12 @@ golang-boilerplate/
 ├─ Makefile
 └─ README.md
 ```
+
+## Agent / Cursor
+
+For AI-assisted development in Cursor, start with **[AGENTS.md](AGENTS.md)** — layer map, HTTP surface, key patterns, and an index of `.cursor/` rules, agents, skills, and slash commands (`gb:plan`, `gb:cook`, `gb:fix`, `gb:test`, `gb:review-code`).
+
+Optional local MCP: copy `.cursor/mcp.json.example` to `.cursor/mcp.json` (gitignored).
 
 ## Quick Start
 
@@ -938,6 +947,8 @@ For full Atlas CLI options, see the [Atlas documentation](https://atlasgo.io/doc
 4. Expose the port configured by `APP_HTTP_SERVER` (e.g. `:3000`).
 
 ## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). If you use Cursor, also read [AGENTS.md](AGENTS.md).
 
 1. Fork the repository
 2. Create a feature branch

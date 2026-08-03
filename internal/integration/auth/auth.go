@@ -3,12 +3,13 @@ package auth
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"golang-boilerplate/internal/config"
 	"golang-boilerplate/internal/constants"
 	"golang-boilerplate/internal/dtos"
 	"golang-boilerplate/internal/errors"
 	"golang-boilerplate/internal/httpclient"
-	"time"
 
 	"github.com/Nerzal/gocloak/v13"
 	jwt "github.com/golang-jwt/jwt/v5"

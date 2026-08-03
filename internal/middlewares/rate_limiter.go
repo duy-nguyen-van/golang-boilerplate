@@ -7,14 +7,13 @@ import (
 	"golang-boilerplate/internal/config"
 	"golang-boilerplate/internal/constants"
 
-	"github.com/labstack/echo/v4"
-	echoMiddleware "github.com/labstack/echo/v4/middleware"
-	"golang.org/x/time/rate"
+	"github.com/labstack/echo/v5"
+	echoMiddleware "github.com/labstack/echo/v5/middleware"
 )
 
 // RateLimit creates a rate limiting middleware with custom configuration
 func RateLimit(config config.Config) echo.MiddlewareFunc {
-	rateLimit := rate.Limit(float64(config.RateLimit) / config.RateLimitDuration.Seconds())
+	rateLimit := float64(config.RateLimit) / config.RateLimitDuration.Seconds()
 	store := echoMiddleware.NewRateLimiterMemoryStoreWithConfig(
 		echoMiddleware.RateLimiterMemoryStoreConfig{
 			Rate:      rateLimit,
@@ -25,11 +24,11 @@ func RateLimit(config config.Config) echo.MiddlewareFunc {
 
 	return echoMiddleware.RateLimiterWithConfig(echoMiddleware.RateLimiterConfig{
 		Store: store,
-		IdentifierExtractor: func(ctx echo.Context) (string, error) {
+		IdentifierExtractor: func(ctx *echo.Context) (string, error) {
 			id := ctx.RealIP()
 			return id, nil
 		},
-		ErrorHandler: func(c echo.Context, err error) error {
+		ErrorHandler: func(c *echo.Context, err error) error {
 			return c.JSON(http.StatusForbidden, map[string]interface{}{
 				"message_code": constants.RateLimitExceeded,
 				"message":      "Rate limit exceeded",
@@ -37,7 +36,7 @@ func RateLimit(config config.Config) echo.MiddlewareFunc {
 				"window":       config.RateLimitDuration.String(),
 			})
 		},
-		DenyHandler: func(c echo.Context, identifier string, err error) error {
+		DenyHandler: func(c *echo.Context, identifier string, err error) error {
 			return c.JSON(http.StatusTooManyRequests, map[string]interface{}{
 				"error_code": constants.RateLimitExceeded,
 				"message":    "Rate limit exceeded",

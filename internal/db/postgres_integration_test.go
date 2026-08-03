@@ -44,14 +44,14 @@ func TestDatabaseManager_Postgres_Health(t *testing.T) {
 	}
 
 	cfg := &config.Config{
-		DatabaseHost:           host,
-		DatabasePort:           port.Port(),
-		DatabaseUsername:       "testuser",
-		DatabasePassword:       "testpassword",
-		DatabaseName:           "testdb",
-		DatabaseEnableDebug:    false,
-		DatabaseMaxOpenConns:   5,
-		DatabaseMaxIdleConns:   5,
+		DatabaseHost:            host,
+		DatabasePort:            port.Port(),
+		DatabaseUsername:        "testuser",
+		DatabasePassword:        "testpassword",
+		DatabaseName:            "testdb",
+		DatabaseEnableDebug:     false,
+		DatabaseMaxOpenConns:    5,
+		DatabaseMaxIdleConns:    5,
 		DatabaseConnMaxLifetime: 5 * time.Minute,
 		DatabaseConnMaxIdleTime: 1 * time.Minute,
 		DatabaseConnectTimeout:  10 * time.Second,
@@ -73,4 +73,3 @@ func TestDatabaseManager_Postgres_Health(t *testing.T) {
 		t.Fatalf("expected database to be healthy, got: %+v", status)
 	}
 }
-

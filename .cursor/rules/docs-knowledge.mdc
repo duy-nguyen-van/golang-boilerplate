@@ -1,0 +1,19 @@
+---
+description: Read project docs before auth, RBAC, or observability changes
+alwaysApply: true
+---
+
+# Project documentation
+
+Before modifying **Keycloak auth, RBAC roles, or OpenTelemetry**:
+
+1. Read the relevant guide under [`docs/`](../../docs/):
+   - [docs/RBAC_GUIDE.md](../../docs/RBAC_GUIDE.md) / [docs/RBAC_QUICK_START.md](../../docs/RBAC_QUICK_START.md) — roles and authorization
+   - [docs/KEYCLOAK_RBAC_SETUP.md](../../docs/KEYCLOAK_RBAC_SETUP.md) — Keycloak realm/client setup
+   - [docs/OPENTELEMETRY.md](../../docs/OPENTELEMETRY.md) — OTel exporter, collector, Jaeger
+
+After behavior changes, update in the same PR:
+
+- Matching docs under `docs/` when auth, roles, or observability behavior changed
+- [documentation-standards.mdc](documentation-standards.mdc) doc map if paths or scope changed
+- `make swagger-load` + commit spec files when `/api/v1` HTTP surface changed

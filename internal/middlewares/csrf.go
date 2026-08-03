@@ -5,8 +5,8 @@ import (
 
 	"golang-boilerplate/internal/config"
 
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 )
 
 // CSRF returns a configured CSRF middleware.
@@ -25,7 +25,7 @@ func CSRF(cfg *config.Config) echo.MiddlewareFunc {
 // ExposeCSRFToken adds the current CSRF token to the response header for clients.
 func ExposeCSRFToken() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			if token, ok := c.Get(middleware.DefaultCSRFConfig.ContextKey).(string); ok && token != "" {
 				c.Response().Header().Set("X-CSRF-Token", token)
 			}
