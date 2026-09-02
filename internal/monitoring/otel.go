@@ -21,7 +21,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.41.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.43.0"
 )
 
 // IsOTelEnabled reports whether OpenTelemetry exporters are configured.
@@ -51,25 +51,9 @@ func InitOpenTelemetry(cfg config.Config) (*OTelProvider, error) {
 		return nil, nil
 	}
 
-	serviceName := cfg.OTelServiceName
-	if serviceName == "" {
-		serviceName = cfg.AppName
-	}
-	if serviceName == "" {
-		serviceName = "golang-boilerplate"
-	}
-
 	ctx := context.Background()
 
-	res, err := resource.Merge(
-		resource.Default(),
-		resource.NewWithAttributes(
-			semconv.SchemaURL,
-			semconv.ServiceName(serviceName),
-			semconv.ServiceVersion(cfg.AppVersion),
-			semconv.DeploymentEnvironmentNameKey.String(cfg.AppEnv.String()),
-		),
-	)
+	res, err := newOTelResource(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -171,6 +155,29 @@ func (p *OTelProvider) Shutdown(ctx context.Context) error {
 	}
 
 	return shutdownErr
+}
+
+// newOTelResource builds the process resource. SchemaURL must match
+// resource.Default() (semconv v1.43.0 in otel SDK v1.46); a mismatch
+// returns "conflicting Schema URL".
+func newOTelResource(cfg config.Config) (*resource.Resource, error) {
+	serviceName := cfg.OTelServiceName
+	if serviceName == "" {
+		serviceName = cfg.AppName
+	}
+	if serviceName == "" {
+		serviceName = "golang-boilerplate"
+	}
+
+	return resource.Merge(
+		resource.Default(),
+		resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceName(serviceName),
+			semconv.ServiceVersion(cfg.AppVersion),
+			semconv.DeploymentEnvironmentNameKey.String(cfg.AppEnv.String()),
+		),
+	)
 }
 
 func usesHTTPExporter(protocol string) bool {

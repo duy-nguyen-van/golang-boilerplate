@@ -144,12 +144,12 @@ func (s *SESSender) SendEmail(ctx context.Context, request EmailRequest) (*Email
 		)
 
 		return &EmailResponse{
-				Provider: "ses",
-				Status:   "failed",
-				Error:    err.Error(),
-			}, errors.ExternalServiceError("Failed to send email via SES", err).
-				WithOperation("send_email").
-				WithResource("ses")
+			Provider: "ses",
+			Status:   "failed",
+			Error:    err.Error(),
+		}, errors.ExternalServiceError("Failed to send email via SES", err).
+			WithOperation("send_email").
+			WithResource("ses")
 	}
 
 	return &EmailResponse{
@@ -170,12 +170,12 @@ func (s *SESSender) SendRawEmail(ctx context.Context, rawData []byte) (*EmailRes
 	result, err := s.client.SendRawEmail(ctx, input)
 	if err != nil {
 		return &EmailResponse{
-				Provider: "ses",
-				Status:   "failed",
-				Error:    err.Error(),
-			}, errors.ExternalServiceError("Failed to send raw email via SES", err).
-				WithOperation("send_raw_email").
-				WithResource("ses")
+			Provider: "ses",
+			Status:   "failed",
+			Error:    err.Error(),
+		}, errors.ExternalServiceError("Failed to send raw email via SES", err).
+			WithOperation("send_raw_email").
+			WithResource("ses")
 	}
 
 	return &EmailResponse{

@@ -4,8 +4,6 @@ import (
 	"golang-boilerplate/internal/db"
 	"golang-boilerplate/internal/dtos"
 
-	"reflect"
-
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -53,21 +51,16 @@ func (r *abstractRepository[T]) FindOneByID(id string) (*T, error) {
 }
 
 func (r *abstractRepository[T]) Create(entity *T) error {
-	ensureUUIDPrimaryKey(entity)
 	res := r.db.Create(entity)
 	return res.Error
 }
 
 func (r *abstractRepository[T]) Save(entity *T) error {
-	ensureUUIDPrimaryKey(entity)
 	res := r.db.Save(entity)
 	return res.Error
 }
 
 func (r *abstractRepository[T]) SaveAll(entities []T) error {
-	for i := range entities {
-		ensureUUIDPrimaryKey(&entities[i])
-	}
 	res := r.db.Save(&entities)
 	return res.Error
 }
@@ -138,37 +131,4 @@ func (r *abstractRepository[T]) find(tx *gorm.DB, pr *dtos.PageableRequest) (*dt
 	return &dtos.DataResponse[T]{
 		Data: entities,
 	}, nil
-}
-
-// ensureUUIDPrimaryKey sets the `ID` field to a new uuid if it exists,
-// is of type uuid.UUID, and is currently zero (uuid.Nil).
-func ensureUUIDPrimaryKey(entity any) {
-	v := reflect.ValueOf(entity)
-	if v.Kind() != reflect.Pointer || v.IsNil() {
-		return
-	}
-	v = v.Elem()
-	if v.Kind() != reflect.Struct {
-		return
-	}
-
-	idField := v.FieldByName("ID")
-	if !idField.IsValid() || !idField.CanSet() {
-		return
-	}
-
-	// Check type: must be uuid.UUID
-	if idField.Type() != reflect.TypeOf(uuid.UUID{}) {
-		return
-	}
-
-	currentID := idField.Interface().(uuid.UUID)
-	if currentID == uuid.Nil {
-		if v7, err := uuid.NewV7(); err == nil {
-			idField.Set(reflect.ValueOf(v7))
-			return
-		}
-		// Fallback to v4 if v7 generation fails for any reason
-		idField.Set(reflect.ValueOf(uuid.New()))
-	}
 }
