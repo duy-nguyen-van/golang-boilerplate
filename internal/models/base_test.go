@@ -61,8 +61,11 @@ func TestBaseModel_BeforeCreate(t *testing.T) {
 			require.NoError(t, err)
 			if tt.expectIDSet {
 				require.NotEmpty(t, m.ID)
-				_, parseErr := uuid.Parse(m.ID)
+				parsed, parseErr := uuid.Parse(m.ID)
 				require.NoError(t, parseErr)
+				if tt.id == "" {
+					assert.Equal(t, uuid.Version(7), parsed.Version())
+				}
 			}
 			if tt.id != "" {
 				assert.Equal(t, tt.id, m.ID)

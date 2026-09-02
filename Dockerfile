@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.26.5-alpine AS builder
+FROM golang:1.27-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -22,11 +22,14 @@ RUN go mod tidy
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/server
 
-# Final stage
-FROM alpine:latest
+# Pin Alpine and bump OpenSSL past CVE-2026-14456 (fixed in 3.5.8-r0)
+FROM alpine:3.22
 
-# Install ca-certificates for HTTPS requests
-RUN apk --no-cache add ca-certificates
+RUN apk upgrade --no-cache \
+    && apk add --no-cache \
+        ca-certificates \
+        'libcrypto3>=3.5.8-r0' \
+        'libssl3>=3.5.8-r0'
 
 # Create non-root user
 RUN adduser -D -s /bin/sh appuser

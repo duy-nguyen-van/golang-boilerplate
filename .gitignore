@@ -6,6 +6,4 @@ cmd/server/gcs-credential.json
 .idea
 
 # Test coverage files
-coverage.out
-coverage.html
-*.out
+bin/*

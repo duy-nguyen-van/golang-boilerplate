@@ -528,6 +528,14 @@ OTEL_EXPORTER_OTLP_INSECURE=true
 
 ## Troubleshooting
 
+### Conflicting Schema URL on startup
+
+```text
+Failed to initialize OpenTelemetry: conflicting Schema URL: https://opentelemetry.io/schemas/1.43.0 and https://opentelemetry.io/schemas/1.41.0
+```
+
+`resource.Merge(resource.Default(), ...)` requires the custom resource to use the same semantic conventions schema as the OTel SDK. In `internal/monitoring/otel.go`, import `go.opentelemetry.io/otel/semconv/v1.43.0` (the version used by `go.opentelemetry.io/otel/sdk` v1.46). Bump that import whenever the SDK default schema changes.
+
 ### OpenTelemetry not initializing
 
 Check startup logs for:
