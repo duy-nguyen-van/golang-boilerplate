@@ -11,6 +11,9 @@ DB_DEV_URL ?= docker://postgres/18/dev
 
 bootstrap: container-up migrate-up up
 
+########################################################################################
+# Linting
+########################################################################################
 .PHONY: lint
 lint:
 	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2 run ./... --config .golangci.yml
@@ -19,16 +22,28 @@ lint:
 lint-fix:
 	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2 run ./... --config .golangci.yml --fix
 
+########################################################################################
+# Mocks
+########################################################################################
 mocks:
 	mockery --case snake --dir ./repositories --all --output ./mocks/repositories
 	mockery --case snake --dir ./adapters --all --output ./mocks/adapters
 
+########################################################################################
+# Building
+########################################################################################
 build:
 	@cd cmd/${cmd} && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ${service_name} .
 
+########################################################################################
+# Dependencies
+########################################################################################
 dep:
 	@go mod tidy
 
+########################################################################################
+# Docker
+########################################################################################
 docker-build:
 	DOCKER_BUILDKIT=1 docker build -f Dockerfile -t golang-boilerplate:latest .
 
@@ -36,6 +51,9 @@ docker-build:
 # Uses repo-root trivy.yaml (skip-files for local gitignored secrets).
 TRIVY_FLAGS = --format table --exit-code 1 --ignore-unfixed --vuln-type os,library --severity CRITICAL,HIGH --config trivy.yaml
 
+########################################################################################
+# Security
+########################################################################################
 security-fs:
 	trivy fs . $(TRIVY_FLAGS) --scanners vuln,secret,misconfig
 
@@ -44,27 +62,42 @@ security-image: docker-build
 
 security: security-fs security-image
 
+########################################################################################
+# Containers
+########################################################################################
 container-up:
 	set -a && source cmd/server/.env && set +a && docker compose up -d
 
 container-down:
 	docker compose down
 
+########################################################################################
+# OTel
+########################################################################################
 otel-up:
 	docker compose up -d otel-collector jaeger
 
 otel-down:
 	docker compose stop otel-collector jaeger
 
+########################################################################################
+# Running
+########################################################################################
 up:
 	cd cmd/server && go run main.go
 
+########################################################################################
+# Versioning
+########################################################################################
 major-version-update:
 	go get -u -t ./...
 
 minor-version-update:
 	go get -u ./...
 
+########################################################################################
+# Migrations
+########################################################################################
 .PHONY: migrate-inspect
 migrate-inspect:
 	atlas schema inspect --url "$(DB_DSN)"
@@ -109,16 +142,24 @@ migrate-status:
 migrate-hash:
 	atlas migrate hash
 
+########################################################################################
+# Formatting
+########################################################################################
 format:
 	go fmt ./...
 
+########################################################################################
+# Swagger
+########################################################################################
 swagger-load:
 	swag init \
 		-g main.go \
 		-d ./cmd/server,./internal/handlers,./internal/middlewares,./internal/services,./internal/repositories,./internal/models,./internal/utils,./internal/config,./internal/constants,./internal/dtos,./internal/logger,./internal/db \
 		--output ./docs
 
-# Test targets
+########################################################################################
+# Testing
+########################################################################################
 tests:
 	@echo "Running all tests with coverage and race detection..."
 	@go test -v -cover -race -timeout 300s -count=1 ./...
@@ -145,16 +186,17 @@ test-coverage:
 
 test-coverage-html:
 	@echo "Generating HTML coverage report..."
-	@go test -coverprofile=coverage.out ./... || true
-	@if [ -f coverage.out ]; then \
-		go tool cover -html=coverage.out -o coverage.html; \
+	@mkdir -p bin
+	@go test -coverprofile=bin/coverage.out ./... || true
+	@if [ -f bin/coverage.out ]; then \
+		go tool cover -html=bin/coverage.out -o bin/coverage.html; \
 		echo ""; \
 		echo "✓ Coverage report generated successfully!"; \
-		echo "  File: coverage.html ($$(pwd)/coverage.html)"; \
+		echo "  File: bin/coverage.html ($$(pwd)/bin/coverage.html)"; \
 		echo "  Open it in your browser to view the report."; \
 	else \
 		echo ""; \
-		echo "✗ Error: coverage.out was not generated."; \
+		echo "✗ Error: bin/coverage.out was not generated."; \
 		echo "  Some tests may have failed before coverage data could be collected."; \
 		exit 1; \
 	fi

@@ -5,9 +5,8 @@ import (
 
 	"golang-boilerplate/internal/config"
 	"golang-boilerplate/internal/errors"
-	"golang-boilerplate/internal/monitoring"
-
 	"golang-boilerplate/internal/logger"
+	"golang-boilerplate/internal/monitoring"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
